@@ -14,6 +14,9 @@ const DESTINATION_SS_ID = "1i_C2AdhnxqPqEAQrr3thhJGK_3cwXJhRrmnXQpPvtD0";
 // The Master Source Spreadsheet (Where the original domains come from)
 const SOURCE_SS_ID = "1XUVbK_VsV-9SsUzfp8YwUF2zJr3rMQ1ANJyQWdtagos"; // <--- THIS WAS MISSING
 
+// Capacity Gap Spreadsheet
+const CAPACITY_GAP_SS_ID = "15iyKfWZmce97cnxlZeryxF9ASalWbfpRjqND70Yp7Kw";
+
 // The Folder where individual decks are saved
 const PARTNER_FOLDER_ID = "1GT-A2Hkg75uXxQF0FYCKROXW8rBw_XjC"; 
 
