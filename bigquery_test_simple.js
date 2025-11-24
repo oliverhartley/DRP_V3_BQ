@@ -87,3 +87,31 @@ function testCteStructure() {
     Logger.log("CTE Structure Failed: " + e.toString());
   }
 }
+
+function testDomainMatching() {
+  const PROJECT_ID = 'concord-prod';
+  const SQL_QUERY = `
+    WITH Spreadsheet_Data AS (
+      SELECT * FROM UNNEST([
+        STRUCT('accenture.com' AS domain),
+        STRUCT('capgemini.com' AS domain),
+        STRUCT('deloitte.com' AS domain)
+      ])
+    )
+    SELECT 
+      t1.partner_name,
+      bq_domain,
+      sheet.domain as matched_domain
+    FROM \`concord-prod.service_partnercoe.drp_partner_master\` AS t1
+    CROSS JOIN UNNEST(t1.partner_details.email_domain) AS bq_domain
+    JOIN Spreadsheet_Data AS sheet ON REGEXP_REPLACE(TRIM(LOWER(bq_domain)), r'^@', '') = REGEXP_REPLACE(TRIM(LOWER(sheet.domain)), r'^@', '')
+    LIMIT 10
+  `;
+  try {
+    const request = { query: SQL_QUERY, useLegacySql: false };
+    const queryResults = BigQuery.Jobs.query(request, PROJECT_ID);
+    Logger.log("Domain Matching Success: " + JSON.stringify(queryResults.rows));
+  } catch (e) {
+    Logger.log("Domain Matching Failed: " + e.toString());
+  }
+}
