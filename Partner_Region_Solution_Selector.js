@@ -64,6 +64,10 @@ function onEdit(e) {
     } catch (err) {
       e.source.toast("Error: " + err.toString(), "Slicer Failed", 10);
       Logger.log(err);
+      // Write error to a visible cell for debugging
+      try {
+        sheet.getRange(1, 5).setValue("Error: " + err.toString()).setBackground("red").setFontColor("white");
+      } catch (e2) { }
     } finally {
       setLoadingStatus(sheet, false);
     }
