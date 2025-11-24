@@ -115,6 +115,24 @@ function testDomainMatching() {
   }
 }
 
+function diagnosticBQ() {
+  const PROJECT_ID = 'concord-prod';
+  const queries = [
+    "SELECT COUNT(*) as count FROM `concord-prod.service_partnercoe.drp_partner_master`",
+    "SELECT partner_name FROM `concord-prod.service_partnercoe.drp_partner_master` LIMIT 5",
+    "SELECT t1.partner_name, bq_domain FROM `concord-prod.service_partnercoe.drp_partner_master` AS t1, UNNEST(t1.partner_details.email_domain) AS bq_domain LIMIT 5"
+  ];
+  queries.forEach((sql, index) => {
+    try {
+      const request = { query: sql, useLegacySql: false };
+      const results = BigQuery.Jobs.query(request, PROJECT_ID);
+      Logger.log(`Query ${index + 1} Success: ` + JSON.stringify(results.rows));
+    } catch (e) {
+      Logger.log(`Query ${index + 1} Failed: ` + e.toString());
+    }
+  });
+}
+
 function testSpreadsheetData() {
   const SOURCE_SS_ID = "1XUVbK_VsV-9SsUzfp8YwUF2zJr3rMQ1ANJyQWdtagos";
   const SHEET_NAME_SOURCE = "Consolidate by Partner";
