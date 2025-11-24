@@ -180,15 +180,22 @@ function refreshDashboardData() {
   for (let r = 0; r < 3; r++) {
     let rowV = [], rowB = [], rowW = [];
     columnsToKeep.forEach(idx => {
-      if (r === 0 && idx > 2) rowV.push(effectiveHeaders.sol[idx]);
-      else if (r === 1 && idx > 2) rowV.push(effectiveHeaders.prod[idx]);
-      else if (r === 2 && idx === 2) {
-        // Insert 3 columns here
-        rowV.push("Total Profiles", "Region Profiles", "Country Profiles");
+      if (idx === 2) {
+        // Insert 3 columns for ALL rows to maintain column count
+        if (r === 0) {
+          rowV.push("", "", ""); // Empty for Solution header
+        } else if (r === 1) {
+          rowV.push("", "", ""); // Empty for Product header
+        } else if (r === 2) {
+          rowV.push("Total Profiles", "Region Profiles", "Country Profiles");
+          }
         rowB.push(scoreBackgrounds[r][idx], scoreBackgrounds[r][idx], scoreBackgrounds[r][idx]);
         rowW.push(scoreFontWeights[r][idx], scoreFontWeights[r][idx], scoreFontWeights[r][idx]);
-        return; // Skip normal push for this index
+        return;
       }
+
+      if (r === 0 && idx > 2) rowV.push(effectiveHeaders.sol[idx]);
+      else if (r === 1 && idx > 2) rowV.push(effectiveHeaders.prod[idx]);
       else rowV.push(scoreValues[r][idx]);
       rowB.push(scoreBackgrounds[r][idx]);
       rowW.push(scoreFontWeights[r][idx]);
