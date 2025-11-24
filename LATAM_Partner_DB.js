@@ -2,7 +2,7 @@
  * ****************************************
  * Google Apps Script - BigQuery Loader
  * File: LATAM_Partner_DB.gs
- * Version: V 4.7 - Added Query Logging & Simplified SQL
+ * Version: V 4.8 - Fixed SQL Syntax (Escaped Quotes)
  * ****************************************
  */
 
@@ -35,6 +35,7 @@ function getSpreadsheetDataAsSqlStruct() {
     let domain = String(row[COL_MAP.DOMAIN]).toLowerCase().trim().replace(/[\x00-\x1F\x7F-\x9F\u200B]/g, "");
     if (domain && !domain.startsWith('@')) domain = '@' + domain;
     if (domain && domain.includes('@')) {
+      domain = domain.replace(/'/g, "\\'"); // Escape single quotes for SQL
       const isTrue = (val) => val === true;
       let sqlLine = `STRUCT('${domain}' AS domain, ${isTrue(row[COL_MAP.GSI])} AS is_gsi, ${isTrue(row[COL_MAP.BRAZIL])} AS is_brazil, ${isTrue(row[COL_MAP.MCO])} AS is_mco, ${isTrue(row[COL_MAP.MEXICO])} AS is_mexico, ${isTrue(row[COL_MAP.PS])} AS is_ps, ${isTrue(row[COL_MAP.AI_ML])} AS is_ai_ml, ${isTrue(row[COL_MAP.GWS])} AS is_gws, ${isTrue(row[COL_MAP.SECURITY])} AS is_security, ${isTrue(row[COL_MAP.DB])} AS is_db, ${isTrue(row[COL_MAP.ANALYTICS])} AS is_analytics, ${isTrue(row[COL_MAP.INFRA])} AS is_infra, ${isTrue(row[COL_MAP.APP_MOD])} AS is_app_mod)`;
       structList.push(sqlLine);
@@ -116,27 +117,30 @@ function runBigQueryQuery() {
           GROUP BY partner_id
       ),
       
-      -- 4. Profile Breakdown
+      -- 4. Profile Breakdown Prep
+      ProfileBreakdown_Prep AS (
+          SELECT partner_id, residing_country, COUNT(DISTINCT profile_id) as count
+          FROM UniqueProfiles
+          GROUP BY partner_id, residing_country
+      ),
+      
+      -- 5. Profile Breakdown Aggregation
       ProfileBreakdown AS (
           SELECT 
               partner_id, 
               STRING_AGG(CONCAT(residing_country, ':', CAST(count AS STRING)), '|') as breakdown
-          FROM (
-              SELECT partner_id, residing_country, COUNT(DISTINCT profile_id) as count
-              FROM UniqueProfiles
-              GROUP BY partner_id, residing_country
-          ) AS sub
+          FROM ProfileBreakdown_Prep
           GROUP BY partner_id
       ),
       
-      -- 5. Final Aggregation
+      -- 6. Final Aggregation
       PartnerAggregation AS (
           SELECT
               up.partner_id,
               up.partner_name,
               COUNT(DISTINCT up.profile_id) AS Total_Profiles,
               STRING_AGG(DISTINCT up.residing_country, ', ') AS Operating_Countries,
-              (APPROX_TOP_COUNT(up.residing_country, 1))[OFFSET(0)].value AS Top_Operating_Country,
+              APPROX_TOP_COUNT(up.residing_country, 1)[SAFE_OFFSET(0)].value AS Top_Operating_Country,
               TRUE AS Managed_Partners,
               pf.is_gsi, pf.is_brazil, pf.is_mco, pf.is_mexico, pf.is_ps,
               pf.is_ai_ml, pf.is_gws, pf.is_security, pf.is_db, pf.is_analytics, pf.is_infra, pf.is_app_mod,
