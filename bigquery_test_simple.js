@@ -114,3 +114,34 @@ function testDomainMatching() {
     Logger.log("Domain Matching Failed: " + e.toString());
   }
 }
+
+function testSpreadsheetData() {
+  const SOURCE_SS_ID = "1XUVbK_VsV-9SsUzfp8YwUF2zJr3rMQ1ANJyQWdtagos";
+  const SHEET_NAME_SOURCE = "Consolidate by Partner";
+  const DOMAIN_START_ROW = 3;
+  const COL_MAP_DOMAIN = 33; // Column AH
+
+  try {
+    const ss = SpreadsheetApp.openById(SOURCE_SS_ID);
+    const sheet = ss.getSheetByName(SHEET_NAME_SOURCE);
+    if (!sheet) {
+      Logger.log("Error: Sheet not found: " + SHEET_NAME_SOURCE);
+      return;
+    }
+    const lastRow = sheet.getLastRow();
+    Logger.log("Last Row: " + lastRow);
+    if (lastRow < DOMAIN_START_ROW) {
+      Logger.log("No data rows.");
+      return;
+    }
+    const range = sheet.getRange(DOMAIN_START_ROW, 1, Math.min(10, lastRow - DOMAIN_START_ROW + 1), 35);
+    const values = range.getValues();
+    Logger.log("Read " + values.length + " rows.");
+    for (let i = 0; i < values.length; i++) {
+      const domain = values[i][COL_MAP_DOMAIN];
+      Logger.log(`Row ${i + DOMAIN_START_ROW}: Domain='${domain}'`);
+    }
+  } catch (e) {
+    Logger.log("Error reading spreadsheet: " + e.toString());
+  }
+}
