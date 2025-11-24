@@ -2,7 +2,7 @@
  * ****************************************
  * Google Apps Script - BigQuery Loader
  * File: LATAM_Partner_DB.gs
- * Version: V 5.1 - CTE Structure Re-applied & Single Quotes
+ * Version: V 5.2 - CTE Structure Force Applied
  * ****************************************
  */
 
@@ -140,7 +140,7 @@ function runBigQueryQuery() {
               up.partner_name,
               COUNT(DISTINCT up.profile_id) AS Total_Profiles,
               STRING_AGG(DISTINCT up.residing_country, ', ') AS Operating_Countries,
-              APPROX_TOP_COUNT(up.residing_country, 1)[SAFE_OFFSET(0)].value AS Top_Operating_Country,
+              (APPROX_TOP_COUNT(up.residing_country, 1))[OFFSET(0)].value AS Top_Operating_Country,
               TRUE AS Managed_Partners,
               pf.is_gsi, pf.is_brazil, pf.is_mco, pf.is_mexico, pf.is_ps,
               pf.is_ai_ml, pf.is_gws, pf.is_security, pf.is_db, pf.is_analytics, pf.is_infra, pf.is_app_mod,
