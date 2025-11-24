@@ -47,7 +47,7 @@ function runBigQueryQuery() {
   try {
     Logger.log("Generando tabla virtual desde spreadsheet...");
     const VIRTUAL_TABLE_DATA = getSpreadsheetDataAsSqlStruct();
-    if (!VIRTUAL_TABLE_DATA) { Browser.msgBox("Error", "No se encontraron datos.", Browser.Buttons.OK); return; }
+    if (!VIRTUAL_TABLE_DATA) { Logger.log("Error: No se encontraron datos."); return; }
 
     const SQL_QUERY = `
       WITH Spreadsheet_Data AS ( SELECT * FROM UNNEST([ ${VIRTUAL_TABLE_DATA} ]) ),
@@ -79,15 +79,14 @@ function runBigQueryQuery() {
           SELECT 
               t1.partner_id,
               t1.partner_name,
-              p.profile_id,
-              p.residing_country,
+              t1.profile_details.profile_id,
+              t1.profile_details.residing_country,
               mp.is_gsi, mp.is_brazil, mp.is_mco, mp.is_mexico, mp.is_ps,
               mp.is_ai_ml, mp.is_gws, mp.is_security, mp.is_db, mp.is_analytics, mp.is_infra, mp.is_app_mod,
               t1.partner_details.email_domain as domains
           FROM \`concord-prod.service_partnercoe.drp_partner_master\` AS t1
           JOIN MatchedPartners mp ON t1.partner_id = mp.partner_id
-          LEFT JOIN UNNEST(t1.profile_details) AS p
-          WHERE p.residing_country IN ('Argentina', 'Bolivia', 'Brazil', 'Chile', 'Colombia', 'Costa Rica', 'Cuba', 'Dominican Republic', 'Ecuador', 'El Salvador', 'Guatemala', 'Honduras', 'Mexico', 'Nicaragua', 'Panama', 'Paraguay', 'Peru', 'Uruguay', 'Venezuela')
+          WHERE t1.profile_details.residing_country IN ('Argentina', 'Bolivia', 'Brazil', 'Chile', 'Colombia', 'Costa Rica', 'Cuba', 'Dominican Republic', 'Ecuador', 'El Salvador', 'Guatemala', 'Honduras', 'Mexico', 'Nicaragua', 'Panama', 'Paraguay', 'Peru', 'Uruguay', 'Venezuela')
       ),
       
       -- 3. Aggregate Profiles by Country
@@ -139,7 +138,7 @@ function runBigQueryQuery() {
     // ... (Rest of the execution code is standard) ...
     const ss = SpreadsheetApp.openById(DESTINATION_SS_ID);
     const sheet = ss.getSheetByName(DESTINATION_SHEET_NAME);
-    if (!sheet) { Browser.msgBox("Error", "Hoja no encontrada.", Browser.Buttons.OK); return; }
+    if (!sheet) { Logger.log("Error: Hoja no encontrada."); return; }
     Logger.log("Iniciando consulta...");
     const request = { query: SQL_QUERY, useLegacySql: false };
     const queryResults = BigQuery.Jobs.query(request, PROJECT_ID);
@@ -151,5 +150,5 @@ function runBigQueryQuery() {
     sheet.clearContents();
     sheet.getRange(1, 1, data.length, data[0].length).setValues(data);
     Logger.log("Carga completa.");
-  } catch (e) { Logger.log("ERROR: " + e.toString()); Browser.msgBox("Error", e.toString(), Browser.Buttons.OK); }
+  } catch (e) { Logger.log("ERROR: " + e.toString()); }
 }
