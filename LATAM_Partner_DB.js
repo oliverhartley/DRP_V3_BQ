@@ -2,7 +2,7 @@
  * ****************************************
  * Google Apps Script - BigQuery Loader
  * File: LATAM_Partner_DB.gs
- * Version: V 4.6 - Fixed SQL Syntax Error (CTE approach)
+ * Version: V 4.7 - Added Query Logging & Simplified SQL
  * ****************************************
  */
 
@@ -116,23 +116,20 @@ function runBigQueryQuery() {
           GROUP BY partner_id
       ),
       
-      -- 4. Profile Breakdown Prep
-      ProfileBreakdown_Prep AS (
-          SELECT partner_id, residing_country, COUNT(DISTINCT profile_id) as count
-          FROM UniqueProfiles
-          GROUP BY partner_id, residing_country
-      ),
-      
-      -- 5. Profile Breakdown Aggregation
+      -- 4. Profile Breakdown
       ProfileBreakdown AS (
           SELECT 
               partner_id, 
-              STRING_AGG(CONCAT(residing_country, ':', count), '|') as breakdown
-          FROM ProfileBreakdown_Prep
+              STRING_AGG(CONCAT(residing_country, ':', CAST(count AS STRING)), '|') as breakdown
+          FROM (
+              SELECT partner_id, residing_country, COUNT(DISTINCT profile_id) as count
+              FROM UniqueProfiles
+              GROUP BY partner_id, residing_country
+          ) AS sub
           GROUP BY partner_id
       ),
       
-      -- 6. Final Aggregation
+      -- 5. Final Aggregation
       PartnerAggregation AS (
           SELECT
               up.partner_id,
@@ -161,6 +158,7 @@ function runBigQueryQuery() {
     const sheet = ss.getSheetByName(DESTINATION_SHEET_NAME);
     if (!sheet) { Logger.log("Error: Hoja no encontrada."); return; }
     Logger.log("Iniciando consulta...");
+    Logger.log("SQL Query: " + SQL_QUERY); // Added logging
     const request = { query: SQL_QUERY, useLegacySql: false };
     const queryResults = BigQuery.Jobs.query(request, PROJECT_ID);
     if (!queryResults.rows || queryResults.rows.length === 0) { sheet.clearContents(); sheet.getRange('A1').setValue("0 resultados."); return; }
