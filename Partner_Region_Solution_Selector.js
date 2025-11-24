@@ -102,6 +102,9 @@ function refreshDashboardData() {
   const idxName = 1; const idxCountry = 3; const idxManaged = 5; 
   const idxRegion = regionSel === "LATAM (All)" ? -1 : dbHeaders.indexOf(regionSel);
   
+  const idxTotalProfiles = dbHeaders.indexOf("Total_Profiles");
+  const idxProfileBreakdown = dbHeaders.indexOf("Profile_Breakdown");
+
   for (let i = 1; i < dbData.length; i++) {
     const pName = dbData[i][idxName];
     const pCountryString = dbData[i][idxCountry];
@@ -111,19 +114,23 @@ function refreshDashboardData() {
     if (pCountryString) { countryArray = String(pCountryString).split(',').map(s => s.trim()); }
 
     // Parse Profile Breakdown
-    const profileBreakdownStr = dbData[i][18]; // New Column at the end
     const profileMap = new Map();
-    if (profileBreakdownStr) {
+    let totalProfiles = 0;
+
+    if (idxProfileBreakdown !== -1 && dbData[i][idxProfileBreakdown]) {
+      const profileBreakdownStr = String(dbData[i][idxProfileBreakdown]);
       profileBreakdownStr.split('|').forEach(pair => {
         const [country, count] = pair.split(':');
         if (country && count) profileMap.set(country.trim(), parseInt(count));
       });
     }
-    const totalProfiles = dbData[i][2] || 0; // Total_Profiles column is index 2
+    if (idxTotalProfiles !== -1) {
+      totalProfiles = dbData[i][idxTotalProfiles] || 0;
+    }
 
     partnerMap.set(pName, {
       countries: countryArray,
-      matchesRegion: isRegion,
+      matchesRegion: isRegion, 
       isManaged: isManaged,
       profileMap: profileMap,
       totalProfiles: totalProfiles
