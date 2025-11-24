@@ -50,6 +50,7 @@ function runBigQueryQuery() {
     if (!VIRTUAL_TABLE_DATA) { Logger.log("Error: No se encontraron datos."); return; }
 
     const SQL_QUERY = `
+      -- Query Version: ${new Date().toISOString()}
       WITH Spreadsheet_Data AS ( SELECT * FROM UNNEST([ ${VIRTUAL_TABLE_DATA} ]) ),
       
       -- 1. Find Matched Partners via Domain
