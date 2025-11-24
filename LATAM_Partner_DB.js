@@ -2,7 +2,7 @@
  * ****************************************
  * Google Apps Script - BigQuery Loader
  * File: LATAM_Partner_DB.gs
- * Version: V 4.5 - Fixed SQL Syntax Error
+ * Version: V 4.6 - Fixed SQL Syntax Error (CTE approach)
  * ****************************************
  */
 
@@ -116,27 +116,30 @@ function runBigQueryQuery() {
           GROUP BY partner_id
       ),
       
-      -- 4. Profile Breakdown
+      -- 4. Profile Breakdown Prep
+      ProfileBreakdown_Prep AS (
+          SELECT partner_id, residing_country, COUNT(DISTINCT profile_id) as count
+          FROM UniqueProfiles
+          GROUP BY partner_id, residing_country
+      ),
+      
+      -- 5. Profile Breakdown Aggregation
       ProfileBreakdown AS (
           SELECT 
               partner_id, 
               STRING_AGG(CONCAT(residing_country, ':', count), '|') as breakdown
-          FROM (
-              SELECT partner_id, residing_country, COUNT(DISTINCT profile_id) as count
-              FROM UniqueProfiles
-              GROUP BY partner_id, residing_country
-          ) AS sub
+          FROM ProfileBreakdown_Prep
           GROUP BY partner_id
       ),
       
-      -- 5. Final Aggregation
+      -- 6. Final Aggregation
       PartnerAggregation AS (
           SELECT
               up.partner_id,
               up.partner_name,
               COUNT(DISTINCT up.profile_id) AS Total_Profiles,
               STRING_AGG(DISTINCT up.residing_country, ', ') AS Operating_Countries,
-              APPROX_TOP_COUNT(up.residing_country, 1)[OFFSET(0)].value AS Top_Operating_Country,
+              (APPROX_TOP_COUNT(up.residing_country, 1))[OFFSET(0)].value AS Top_Operating_Country,
               TRUE AS Managed_Partners,
               pf.is_gsi, pf.is_brazil, pf.is_mco, pf.is_mexico, pf.is_ps,
               pf.is_ai_ml, pf.is_gws, pf.is_security, pf.is_db, pf.is_analytics, pf.is_infra, pf.is_app_mod,
