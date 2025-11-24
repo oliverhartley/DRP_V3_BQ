@@ -2,7 +2,7 @@
  * ****************************************
  * Google Apps Script - BigQuery Loader
  * File: LATAM_Partner_DB.gs
- * Version: V 5.3 - Fixed Join Syntax & Single Quotes
+ * Version: V 5.4 - Robust Join Condition
  * ****************************************
  */
 
@@ -77,7 +77,7 @@ function runBigQueryQuery() {
               bq_domain
           FROM \`concord-prod.service_partnercoe.drp_partner_master\` AS t1
           CROSS JOIN UNNEST(t1.partner_details.email_domain) AS bq_domain
-          LEFT JOIN Spreadsheet_Data AS sheet ON TRIM(LOWER(bq_domain)) = sheet.domain
+          LEFT JOIN Spreadsheet_Data AS sheet ON REGEXP_REPLACE(TRIM(LOWER(bq_domain)), r'^@', '') = REGEXP_REPLACE(TRIM(LOWER(sheet.domain)), r'^@', '')
           WHERE t1.profile_details.residing_country IN ('Argentina', 'Bolivia', 'Brazil', 'Chile', 'Colombia', 'Costa Rica', 'Cuba', 'Dominican Republic', 'Ecuador', 'El Salvador', 'Guatemala', 'Honduras', 'Mexico', 'Nicaragua', 'Panama', 'Paraguay', 'Peru', 'Uruguay', 'Venezuela')
       ),
       
