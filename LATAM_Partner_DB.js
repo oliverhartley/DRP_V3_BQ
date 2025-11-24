@@ -2,7 +2,7 @@
  * ****************************************
  * Google Apps Script - BigQuery Loader
  * File: LATAM_Partner_DB.gs
- * Version: V 4.9 - Safe SQL Escaping & Filtered #N/A
+ * Version: V 5.0 - Verified CTE Structure
  * ****************************************
  */
 
