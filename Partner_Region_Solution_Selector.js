@@ -109,7 +109,25 @@ function refreshDashboardData() {
     const isRegion = idxRegion === -1 ? true : (dbData[i][idxRegion] === true);
     let countryArray = [];
     if (pCountryString) { countryArray = String(pCountryString).split(',').map(s => s.trim()); }
-    partnerMap.set(pName, { countries: countryArray, matchesRegion: isRegion, isManaged: isManaged });
+
+    // Parse Profile Breakdown
+    const profileBreakdownStr = dbData[i][2]; // New Column
+    const profileMap = new Map();
+    if (profileBreakdownStr) {
+      profileBreakdownStr.split('|').forEach(pair => {
+        const [country, count] = pair.split(':');
+        if (country && count) profileMap.set(country.trim(), parseInt(count));
+      });
+    }
+    const totalProfiles = dbData[i][1] || 0; // Total_Profiles column
+
+    partnerMap.set(pName, {
+      countries: countryArray,
+      matchesRegion: isRegion,
+      isManaged: isManaged,
+      profileMap: profileMap,
+      totalProfiles: totalProfiles
+    });
   }
   
   // 3. Filter Columns
@@ -125,7 +143,7 @@ function refreshDashboardData() {
   const rowSol = scoreValues[0];
   const rowProd = scoreValues[1];
   
-  const columnsToKeep = [0, 1, 2]; 
+  const columnsToKeep = [0, 1, 2]; // ID, Name, Total Profiles (will be overwritten)
   const effectiveHeaders = { sol: {}, prod: {} }; 
   
   for (let c = 3; c < rowSol.length; c++) {
@@ -164,6 +182,13 @@ function refreshDashboardData() {
     columnsToKeep.forEach(idx => {
       if (r === 0 && idx > 2) rowV.push(effectiveHeaders.sol[idx]);
       else if (r === 1 && idx > 2) rowV.push(effectiveHeaders.prod[idx]);
+      else if (r === 2 && idx === 2) {
+        // Insert 3 columns here
+        rowV.push("Total Profiles", "Region Profiles", "Country Profiles");
+        rowB.push(scoreBackgrounds[r][idx], scoreBackgrounds[r][idx], scoreBackgrounds[r][idx]);
+        rowW.push(scoreFontWeights[r][idx], scoreFontWeights[r][idx], scoreFontWeights[r][idx]);
+        return; // Skip normal push for this index
+      }
       else rowV.push(scoreValues[r][idx]);
       rowB.push(scoreBackgrounds[r][idx]);
       rowW.push(scoreFontWeights[r][idx]);
@@ -197,6 +222,46 @@ function refreshDashboardData() {
            val = `=IFNA(HYPERLINK(VLOOKUP("${safeName}", ${linkSheet}!A:B, 2, FALSE), "${safeName}"), "${safeName}")`;
         }
         
+        if (idx === 2) {
+          // Insert 3 columns data
+          const total = meta.totalProfiles;
+          let regionTotal = 0;
+          let countryTotal = 0;
+
+          // Region Mapping
+          const regionMapping = {
+            'Brazil': ['Brazil'],
+            'Mexico': ['Mexico'],
+            'MCO': ['Argentina', 'Bolivia', 'Chile', 'Colombia', 'Costa Rica', 'Cuba', 'Dominican Republic', 'Ecuador', 'El Salvador', 'Guatemala', 'Honduras', 'Nicaragua', 'Panama', 'Paraguay', 'Peru', 'Uruguay', 'Venezuela'],
+            'GSI': ['GSI'], // Per user request, treat as country
+            'PS': ['PS']    // Per user request, treat as country
+          };
+
+          const currentRegion = regionSel === "LATAM (All)" ? null : regionSel;
+          const currentCountry = countrySel === "All" ? null : countrySel;
+
+          // Calculate Region Total
+          if (currentRegion && regionMapping[currentRegion]) {
+            regionMapping[currentRegion].forEach(c => {
+              regionTotal += (meta.profileMap.get(c) || 0);
+            });
+          } else {
+            regionTotal = total; // Default to total if region not mapped or "All"
+          }
+
+          // Calculate Country Total
+          if (currentCountry) {
+            countryTotal = meta.profileMap.get(currentCountry) || 0;
+          } else {
+            countryTotal = regionTotal; // Default to region total if country not selected
+          }
+
+          rowV.push(total, regionTotal, countryTotal);
+          rowB.push(scoreBackgrounds[r][idx], scoreBackgrounds[r][idx], scoreBackgrounds[r][idx]);
+          rowW.push(scoreFontWeights[r][idx], scoreFontWeights[r][idx], scoreFontWeights[r][idx]);
+          return; // Skip normal push
+        }
+
         rowV.push(val); 
         rowB.push(scoreBackgrounds[r][idx]); 
         rowW.push(scoreFontWeights[r][idx]); 
@@ -261,14 +326,18 @@ function refreshDashboardData() {
     targetRange.setHorizontalAlignment("center");
     dashSheet.getRange(DATA_START_ROW, 2, outRows, 1).setHorizontalAlignment("left");
     dashSheet.getRange(DATA_START_ROW, 3, outRows, 1).setBackground("#d9d9d9");
+    dashSheet.getRange(DATA_START_ROW, 1, outRows, outCols).setBorder(true, true, true, true, true, true);
     dashSheet.getRange(DATA_START_ROW, 1, 3, outCols).setBorder(true, true, true, true, true, true);
-    for(let c = 4; c <= outCols; c++) { dashSheet.setColumnWidth(c, 50); }
+    for (let c = 6; c <= outCols; c++) { dashSheet.setColumnWidth(c, 50); }
+    dashSheet.setColumnWidth(3, 80); // Total
+    dashSheet.setColumnWidth(4, 80); // Region
+    dashSheet.setColumnWidth(5, 80); // Country
 
     const solutionRowIndex = DATA_START_ROW; const productRowIndex = DATA_START_ROW + 1;
-    let solMergeStart = 4; let currentSol = outputValues[0][3];
-    let prodMergeStart = 4; let currentProd = outputValues[1][3];
+    let solMergeStart = 6; let currentSol = outputValues[0][5];
+    let prodMergeStart = 6; let currentProd = outputValues[1][5];
 
-    for (let c = 4; c < outCols; c++) { 
+    for (let c = 6; c < outCols; c++) { 
        const nextSol = outputValues[0][c]; const nextProd = outputValues[1][c];
        if (String(nextSol).trim() !== String(currentSol).trim() || String(currentSol).trim() === "") {
           const span = c - (solMergeStart - 1); if (span > 1) dashSheet.getRange(solutionRowIndex, solMergeStart, 1, span).merge();

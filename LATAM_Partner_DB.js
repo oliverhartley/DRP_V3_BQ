@@ -57,7 +57,7 @@ function runBigQueryQuery() {
               t1.partner_name,
               -- *** NEW COLUMN HERE ***
               COUNT(DISTINCT t1.profile_details.profile_id) AS Total_Profiles,
-
+              (SELECT STRING_AGG(CONCAT(country, ':', count), '|') FROM (SELECT residing_country as country, COUNT(*) as count FROM UNNEST(ARRAY_AGG(t1.profile_details.residing_country)) as residing_country GROUP BY residing_country)) AS Profile_Breakdown,
               STRING_AGG(DISTINCT t1.profile_details.residing_country, ', ') AS Operating_Countries,
               (APPROX_TOP_COUNT(t1.profile_details.residing_country, 1))[OFFSET(0)].value AS Top_Operating_Country,
               LOGICAL_OR(sheet.domain IS NOT NULL) AS Managed_Partners, 
