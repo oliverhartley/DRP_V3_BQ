@@ -2,7 +2,7 @@
  * ****************************************
  * Google Apps Script - BigQuery Loader
  * File: LATAM_Partner_DB.gs
- * Version: V 5.5 - Fixed Column Mapping (Domain AH)
+ * Version: V 5.6 - Fixed Column Mapping (Domain AI)
  * ****************************************
  */
 
@@ -14,7 +14,7 @@ const DOMAIN_START_ROW = 3;
 const COL_MAP = {
   GSI: 7, BRAZIL: 8, MCO: 9, MEXICO: 10, PS: 11, 
   AI_ML: 13, GWS: 14, SECURITY: 15, DB: 16, ANALYTICS: 17, INFRA: 18, APP_MOD: 19, 
-  DOMAIN: 33
+  DOMAIN: 34
 };
 
 // ... [getSpreadsheetDataAsSqlStruct function remains EXACTLY THE SAME as V4.1] ...

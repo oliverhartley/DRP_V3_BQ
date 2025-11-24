@@ -119,7 +119,7 @@ function testSpreadsheetData() {
   const SOURCE_SS_ID = "1XUVbK_VsV-9SsUzfp8YwUF2zJr3rMQ1ANJyQWdtagos";
   const SHEET_NAME_SOURCE = "Consolidate by Partner";
   const DOMAIN_START_ROW = 3;
-  const COL_MAP_DOMAIN = 33; // Column AH
+  const COL_MAP_DOMAIN = 34; // Column AI
 
   try {
     const ss = SpreadsheetApp.openById(SOURCE_SS_ID);
