@@ -99,11 +99,11 @@ function testDomainMatching() {
       ])
     )
     SELECT 
+      (SELECT COUNT(*) FROM \`concord-prod.service_partnercoe.drp_partner_master\`) as total_rows,
       t1.partner_name,
       bq_domain
     FROM \`concord-prod.service_partnercoe.drp_partner_master\` AS t1
     CROSS JOIN UNNEST(t1.partner_details.email_domain) AS bq_domain
-    WHERE t1.partner_name IN ('Accenture', 'Capgemini', 'Deloitte')
     LIMIT 10
   `;
   try {
