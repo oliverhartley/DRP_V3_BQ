@@ -26,3 +26,34 @@ function testVirtualTableQuery() {
     Logger.log("Virtual Table Query Failed: " + e.toString());
   }
 }
+
+function testComplexQuery() {
+  const PROJECT_ID = 'concord-prod';
+  const SQL_QUERY = `
+    WITH DummyData AS (
+      SELECT 'p1' as partner_id, 'c1' as country, 'prof1' as profile_id
+      UNION ALL SELECT 'p1', 'c1', 'prof2'
+      UNION ALL SELECT 'p1', 'c2', 'prof3'
+      UNION ALL SELECT 'p2', 'c1', 'prof4'
+    ),
+    ProfileBreakdown AS (
+      SELECT 
+        partner_id,
+        STRING_AGG(CONCAT(country, ':', CAST(count AS STRING)), '|') as breakdown
+      FROM (
+        SELECT partner_id, country, COUNT(DISTINCT profile_id) as count
+        FROM DummyData
+        GROUP BY partner_id, country
+      ) AS sub
+      GROUP BY partner_id
+    )
+    SELECT * FROM ProfileBreakdown
+  `;
+  try {
+    const request = { query: SQL_QUERY, useLegacySql: false };
+    const queryResults = BigQuery.Jobs.query(request, PROJECT_ID);
+    Logger.log("Complex Query Success: " + JSON.stringify(queryResults.rows));
+  } catch (e) {
+    Logger.log("Complex Query Failed: " + e.toString());
+  }
+}
