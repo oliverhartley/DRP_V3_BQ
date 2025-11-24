@@ -57,3 +57,33 @@ function testComplexQuery() {
     Logger.log("Complex Query Failed: " + e.toString());
   }
 }
+
+function testCteStructure() {
+  const PROJECT_ID = 'concord-prod';
+  const SQL_QUERY = `
+    WITH DummyData AS (
+      SELECT 'p1' as partner_id, 'c1' as country, 'prof1' as profile_id
+      UNION ALL SELECT 'p1', 'c1', 'prof2'
+      UNION ALL SELECT 'p1', 'c2', 'prof3'
+      UNION ALL SELECT 'p2', 'c1', 'prof4'
+    ),
+    Prep AS (
+      SELECT partner_id, country, COUNT(DISTINCT profile_id) as count
+      FROM DummyData
+      GROUP BY partner_id, country
+    ),
+    Breakdown AS (
+      SELECT partner_id, STRING_AGG(CONCAT(country, ':', CAST(count AS STRING)), '|') as breakdown
+      FROM Prep
+      GROUP BY partner_id
+    )
+    SELECT * FROM Breakdown
+  `;
+  try {
+    const request = { query: SQL_QUERY, useLegacySql: false };
+    const queryResults = BigQuery.Jobs.query(request, PROJECT_ID);
+    Logger.log("CTE Structure Success: " + JSON.stringify(queryResults.rows));
+  } catch (e) {
+    Logger.log("CTE Structure Failed: " + e.toString());
+  }
+}
