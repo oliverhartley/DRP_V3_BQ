@@ -2,7 +2,7 @@
  * ****************************************
  * Google Apps Script - BigQuery Loader
  * File: LATAM_Partner_DB.gs
- * Version: V 5.2 - CTE Structure Force Applied
+ * Version: V 5.3 - Fixed Join Syntax & Single Quotes
  * ****************************************
  */
 
@@ -54,9 +54,6 @@ function runBigQueryQuery() {
       -- Query Version: ${new Date().toISOString()}
       WITH Spreadsheet_Data AS ( SELECT * FROM UNNEST([ ${VIRTUAL_TABLE_DATA} ]) ),
       
-      -- 1. Get Unique Partner-Domain pairs from Spreadsheet matches
-      MatchedDomains AS (
-          SELECT DISTINCT
       -- 1. Get Raw Data with Join to Spreadsheet
       RawData AS (
           SELECT
@@ -78,8 +75,8 @@ function runBigQueryQuery() {
               IFNULL(sheet.is_infra, FALSE) as is_infra,
               IFNULL(sheet.is_app_mod, FALSE) as is_app_mod,
               bq_domain
-          FROM \`concord-prod.service_partnercoe.drp_partner_master\` AS t1,
-          UNNEST(t1.partner_details.email_domain) AS bq_domain
+          FROM \`concord-prod.service_partnercoe.drp_partner_master\` AS t1
+          CROSS JOIN UNNEST(t1.partner_details.email_domain) AS bq_domain
           LEFT JOIN Spreadsheet_Data AS sheet ON TRIM(LOWER(bq_domain)) = sheet.domain
           WHERE t1.profile_details.residing_country IN ('Argentina', 'Bolivia', 'Brazil', 'Chile', 'Colombia', 'Costa Rica', 'Cuba', 'Dominican Republic', 'Ecuador', 'El Salvador', 'Guatemala', 'Honduras', 'Mexico', 'Nicaragua', 'Panama', 'Paraguay', 'Peru', 'Uruguay', 'Venezuela')
       ),
