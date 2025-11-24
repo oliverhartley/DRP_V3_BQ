@@ -51,37 +51,89 @@ function runBigQueryQuery() {
 
     const SQL_QUERY = `
       WITH Spreadsheet_Data AS ( SELECT * FROM UNNEST([ ${VIRTUAL_TABLE_DATA} ]) ),
-      PartnerAggregation AS (
-          SELECT
+      
+      -- 1. Find Matched Partners via Domain
+      MatchedPartners AS (
+          SELECT DISTINCT
               t1.partner_id,
-              t1.partner_name,
-              -- *** NEW COLUMN HERE ***
-              COUNT(DISTINCT t1.profile_details.profile_id) AS Total_Profiles,
-              (SELECT STRING_AGG(CONCAT(country, ':', count), '|') FROM (SELECT residing_country as country, COUNT(*) as count FROM UNNEST(ARRAY_AGG(t1.profile_details.residing_country)) as residing_country GROUP BY residing_country)) AS Profile_Breakdown,
-              STRING_AGG(DISTINCT t1.profile_details.residing_country, ', ') AS Operating_Countries,
-              (APPROX_TOP_COUNT(t1.profile_details.residing_country, 1))[OFFSET(0)].value AS Top_Operating_Country,
-              LOGICAL_OR(sheet.domain IS NOT NULL) AS Managed_Partners, 
-              LOGICAL_OR(IFNULL(sheet.is_gsi, FALSE)) AS GSI,
-              LOGICAL_OR(IFNULL(sheet.is_brazil, FALSE)) AS Brazil,
-              LOGICAL_OR(IFNULL(sheet.is_mco, FALSE)) AS MCO,
-              LOGICAL_OR(IFNULL(sheet.is_mexico, FALSE)) AS Mexico,
-              LOGICAL_OR(IFNULL(sheet.is_ps, FALSE)) AS PS,
-              LOGICAL_OR(IFNULL(sheet.is_ai_ml, FALSE)) AS AI_ML,
-              LOGICAL_OR(IFNULL(sheet.is_gws, FALSE)) AS GWS,
-              LOGICAL_OR(IFNULL(sheet.is_security, FALSE)) AS Security,
-              LOGICAL_OR(IFNULL(sheet.is_db, FALSE)) AS DB,
-              LOGICAL_OR(IFNULL(sheet.is_analytics, FALSE)) AS Analytics,
-              LOGICAL_OR(IFNULL(sheet.is_infra, FALSE)) AS Infra,
-              LOGICAL_OR(IFNULL(sheet.is_app_mod, FALSE)) AS App_Mod,
-              ARRAY_CONCAT_AGG(t1.partner_details.email_domain) AS raw_partner_domains
+              LOGICAL_OR(IFNULL(sheet.is_gsi, FALSE)) AS is_gsi,
+              LOGICAL_OR(IFNULL(sheet.is_brazil, FALSE)) AS is_brazil,
+              LOGICAL_OR(IFNULL(sheet.is_mco, FALSE)) AS is_mco,
+              LOGICAL_OR(IFNULL(sheet.is_mexico, FALSE)) AS is_mexico,
+              LOGICAL_OR(IFNULL(sheet.is_ps, FALSE)) AS is_ps,
+              LOGICAL_OR(IFNULL(sheet.is_ai_ml, FALSE)) AS is_ai_ml,
+              LOGICAL_OR(IFNULL(sheet.is_gws, FALSE)) AS is_gws,
+              LOGICAL_OR(IFNULL(sheet.is_security, FALSE)) AS is_security,
+              LOGICAL_OR(IFNULL(sheet.is_db, FALSE)) AS is_db,
+              LOGICAL_OR(IFNULL(sheet.is_analytics, FALSE)) AS is_analytics,
+              LOGICAL_OR(IFNULL(sheet.is_infra, FALSE)) AS is_infra,
+              LOGICAL_OR(IFNULL(sheet.is_app_mod, FALSE)) AS is_app_mod
           FROM \`concord-prod.service_partnercoe.drp_partner_master\` AS t1,
           UNNEST(t1.partner_details.email_domain) AS bq_domain
-          LEFT JOIN Spreadsheet_Data AS sheet ON TRIM(LOWER(bq_domain)) = sheet.domain
-          WHERE t1.profile_details.residing_country IN ('Argentina', 'Bolivia', 'Brazil', 'Chile', 'Colombia', 'Costa Rica', 'Cuba', 'Dominican Republic', 'Ecuador', 'El Salvador', 'Guatemala', 'Honduras', 'Mexico', 'Nicaragua', 'Panama', 'Paraguay', 'Peru', 'Uruguay', 'Venezuela')
-          GROUP BY t1.partner_id, t1.partner_name
+          INNER JOIN Spreadsheet_Data AS sheet ON TRIM(LOWER(bq_domain)) = sheet.domain
+          GROUP BY t1.partner_id
+      ),
+      
+      -- 2. Get Profile Data for Matched Partners
+      PartnerData AS (
+          SELECT 
+              t1.partner_id,
+              t1.partner_name,
+              p.profile_id,
+              p.residing_country,
+              mp.is_gsi, mp.is_brazil, mp.is_mco, mp.is_mexico, mp.is_ps,
+              mp.is_ai_ml, mp.is_gws, mp.is_security, mp.is_db, mp.is_analytics, mp.is_infra, mp.is_app_mod,
+              t1.partner_details.email_domain as domains
+          FROM \`concord-prod.service_partnercoe.drp_partner_master\` AS t1
+          JOIN MatchedPartners mp ON t1.partner_id = mp.partner_id
+          LEFT JOIN UNNEST(t1.profile_details) AS p
+          WHERE p.residing_country IN ('Argentina', 'Bolivia', 'Brazil', 'Chile', 'Colombia', 'Costa Rica', 'Cuba', 'Dominican Republic', 'Ecuador', 'El Salvador', 'Guatemala', 'Honduras', 'Mexico', 'Nicaragua', 'Panama', 'Paraguay', 'Peru', 'Uruguay', 'Venezuela')
+      ),
+      
+      -- 3. Aggregate Profiles by Country
+      ProfileBreakdown AS (
+          SELECT 
+              partner_id, 
+              STRING_AGG(CONCAT(residing_country, ':', count), '|') as breakdown
+          FROM (
+              SELECT partner_id, residing_country, COUNT(DISTINCT profile_id) as count
+              FROM PartnerData
+              GROUP BY partner_id, residing_country
+          )
+          GROUP BY partner_id
+      ),
+      
+      -- 4. Main Aggregation
+      PartnerAggregation AS (
+          SELECT
+              partner_id,
+              partner_name,
+              COUNT(DISTINCT profile_id) AS Total_Profiles,
+              STRING_AGG(DISTINCT residing_country, ', ') AS Operating_Countries,
+              (APPROX_TOP_COUNT(residing_country, 1))[OFFSET(0)].value AS Top_Operating_Country,
+              TRUE AS Managed_Partners, -- If they are in MatchedPartners, they are managed
+              LOGICAL_OR(is_gsi) AS GSI,
+              LOGICAL_OR(is_brazil) AS Brazil,
+              LOGICAL_OR(is_mco) AS MCO,
+              LOGICAL_OR(is_mexico) AS Mexico,
+              LOGICAL_OR(is_ps) AS PS,
+              LOGICAL_OR(is_ai_ml) AS AI_ML,
+              LOGICAL_OR(is_gws) AS GWS,
+              LOGICAL_OR(is_security) AS Security,
+              LOGICAL_OR(is_db) AS DB,
+              LOGICAL_OR(is_analytics) AS Analytics,
+              LOGICAL_OR(is_infra) AS Infra,
+              LOGICAL_OR(is_app_mod) AS App_Mod,
+              ARRAY_CONCAT_AGG(domains) AS raw_partner_domains
+          FROM PartnerData
+          GROUP BY partner_id, partner_name
       )
-      SELECT * EXCEPT (raw_partner_domains), (SELECT STRING_AGG(DISTINCT domain, ', ') FROM UNNEST(raw_partner_domains) AS domain WHERE domain IS NOT NULL) AS Partner_Domains
-      FROM PartnerAggregation;
+      SELECT 
+          pa.* EXCEPT (raw_partner_domains), 
+          pb.breakdown AS Profile_Breakdown,
+          (SELECT STRING_AGG(DISTINCT domain, ', ') FROM UNNEST(pa.raw_partner_domains) AS domain WHERE domain IS NOT NULL) AS Partner_Domains
+      FROM PartnerAggregation AS pa
+      LEFT JOIN ProfileBreakdown AS pb ON pa.partner_id = pb.partner_id;
     `;
 
     // ... (Rest of the execution code is standard) ...

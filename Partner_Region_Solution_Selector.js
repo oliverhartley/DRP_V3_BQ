@@ -111,7 +111,7 @@ function refreshDashboardData() {
     if (pCountryString) { countryArray = String(pCountryString).split(',').map(s => s.trim()); }
 
     // Parse Profile Breakdown
-    const profileBreakdownStr = dbData[i][2]; // New Column
+    const profileBreakdownStr = dbData[i][18]; // New Column at the end
     const profileMap = new Map();
     if (profileBreakdownStr) {
       profileBreakdownStr.split('|').forEach(pair => {
@@ -119,7 +119,7 @@ function refreshDashboardData() {
         if (country && count) profileMap.set(country.trim(), parseInt(count));
       });
     }
-    const totalProfiles = dbData[i][1] || 0; // Total_Profiles column
+    const totalProfiles = dbData[i][2] || 0; // Total_Profiles column is index 2
 
     partnerMap.set(pName, {
       countries: countryArray,
