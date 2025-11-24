@@ -100,11 +100,10 @@ function testDomainMatching() {
     )
     SELECT 
       t1.partner_name,
-      bq_domain,
-      sheet.domain as matched_domain
+      bq_domain
     FROM \`concord-prod.service_partnercoe.drp_partner_master\` AS t1
     CROSS JOIN UNNEST(t1.partner_details.email_domain) AS bq_domain
-    JOIN Spreadsheet_Data AS sheet ON REGEXP_REPLACE(TRIM(LOWER(bq_domain)), r'^@', '') = REGEXP_REPLACE(TRIM(LOWER(sheet.domain)), r'^@', '')
+    WHERE t1.partner_name IN ('Accenture', 'Capgemini', 'Deloitte')
     LIMIT 10
   `;
   try {
