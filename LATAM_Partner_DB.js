@@ -2,7 +2,7 @@
  * ****************************************
  * Google Apps Script - BigQuery Loader
  * File: LATAM_Partner_DB.gs
- * Version: V 4.2 - Added Total Profiles Count
+ * Version: V 4.3 - Added Profile Breakdown & Fixed Overcounting
  * ****************************************
  */
 

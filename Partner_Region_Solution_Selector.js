@@ -2,7 +2,7 @@
  * ****************************************
  * Google Apps Script - Partner Dashboard Slicer
  * File: Partner_Region_Solution_Selector.gs
- * Version: 7.2 (Fixed Sorting Error)
+ * Version: 7.3 - Added Profile Breakdown Columns & Debugging
  * ****************************************
  */
 
