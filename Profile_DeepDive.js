@@ -2,7 +2,7 @@
  * ****************************************
  * Google Apps Script - Profile Deep Dive (SQL Source)
  * File: Profile_DeepDive.gs
- * Version: 2.1 (Robust Join Logic)
+ * Version: 2.2 (Fixed Syntax Error)
  * ****************************************
  */
 
@@ -51,7 +51,7 @@ function runDeepDiveQuerySource() {
       FROM
         \`concord-prod.service_partnercoe.drp_partner_master\` AS t1
       CROSS JOIN UNNEST(t1.partner_details.email_domain) AS bq_domain
-      UNNEST(t1.profile_details.score_details) AS scores
+      CROSS JOIN UNNEST(t1.profile_details.score_details) AS scores
       INNER JOIN Spreadsheet_Data AS sheet
         ON REGEXP_REPLACE(TRIM(LOWER(bq_domain)), r'^@', '') = REGEXP_REPLACE(TRIM(LOWER(sheet.domain)), r'^@', '')
       
