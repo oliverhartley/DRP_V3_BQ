@@ -2,7 +2,7 @@
  * ****************************************
  * Google Apps Script - Individual Partner Decks
  * File: Partner_Individual_Decks.gs
- * Version: 10.2 (Robust Filter Logic)
+ * Version: 10.3 (Fix Headers & Formula)
  * ****************************************
  */
 
@@ -328,7 +328,7 @@ function formatDeepDivePivot(sheet, lastRow, lastCol, rawSheetName, lastColLette
     // Since we want to keep formatting, we might need to apply the formula to data rows only, but FILTER returns multiple rows.
     // Better to just use the formula in A7 (first data row) and keep A6 as static headers.
 
-    sheet.getRange(startRow + 1, 1).setFormula(`=IFERROR(IF(B2="All", ${rawSheetName}!A2:${lastColLetter}1000, FILTER(${rawSheetName}!A2:${lastColLetter}1000, TRIM(${rawSheetName}!B2:B1000) = B2)), "No data found")`);
+    sheet.getRange(startRow + 1, 1).setFormula(`=IFERROR(FILTER(${rawSheetName}!A2:${lastColLetter}1000, (${rawSheetName}!B2:B1000 = B2) + (B2="All")), "No data found")`);
 
     // Formatting
     const dataRange = sheet.getRange(startRow + 1, 1, 500, lastCol); // Reduced to 500 for stability
