@@ -2,7 +2,7 @@
  * ****************************************
  * Google Apps Script - Individual Partner Decks
  * File: Partner_Individual_Decks.gs
- * Version: 9.2 (Profile ID Hyperlinks)
+ * Version: 9.3 (Tier 1 Count Column)
  * ****************************************
  */
 
@@ -192,11 +192,21 @@ function updatePartnerSpreadsheet(partnerName, dashData, totalProfilesFromScoreD
   if (!diveSheet) { diveSheet = ss.insertSheet(DEEPDIVE_SHEET_NAME); } else { diveSheet.clear(); }
   if (diveSheet.getFilter()) { diveSheet.getFilter().remove(); }
   if (pivotData.length > 0) {
-    // Add hyperlinks to Profile IDs
+    // Add hyperlinks and count Tier 1s
     for (let i = 0; i < pivotData.length; i++) {
-      const profileId = pivotData[i][0];
-      if (profileId && profileId !== "Profile ID") { // Skip header if present, though pivotData usually doesn't have it here
-        pivotData[i][0] = `=HYPERLINK("https://delivery-readiness-portal.cloud.google/app/profiles/detailed-profile-view/${profileId}", "${profileId}")`;
+      const row = pivotData[i];
+      let tier1Count = 0;
+      for (let j = 3; j < row.length; j++) { // Products start at index 3
+        if (row[j] === "Tier 1") {
+          tier1Count++;
+        }
+      }
+      // Insert count at index 3
+      row.splice(3, 0, tier1Count);
+
+      const profileId = row[0];
+      if (profileId && typeof profileId === 'string' && !profileId.startsWith('=HYPERLINK')) {
+        row[0] = `=HYPERLINK("https://delivery-readiness-portal.cloud.google/app/profiles/detailed-profile-view/${profileId}", "${profileId}")`;
       }
     }
     diveSheet.getRange(3, 1, pivotData.length, pivotData[0].length).setValues(pivotData);
@@ -221,8 +231,8 @@ function formatDeckSheet(sheet, lastRow, lastCol) {
 
     // NEW: Apply dynamic formulas to the table
     // Column A: Solutions, Column B: Products, Col C: Tier 1, Col D: Tier 2, Col E: Tier 3, Col F: Tier 4
-    // Profile Deep Dive: Col B is Country, Col D onwards are products
-    let currentProductColIndex = 4; // Start at Column D (Google Compute Engine) in Profile Deep Dive
+    // Profile Deep Dive: Col B is Country, Col E onwards are products (due to new Tier 1 Count column)
+    let currentProductColIndex = 5; // Start at Column E (Google Compute Engine) in Profile Deep Dive
     for (let i = 2; i <= lastRow; i++) {
       const product = sheet.getRange(i, 2).getValue();
       if (product) {
@@ -264,11 +274,11 @@ function formatDeckSheet(sheet, lastRow, lastCol) {
 function formatDeepDivePivot(sheet, lastRow, lastCol) {
   try {
     if (sheet.getFilter()) { sheet.getFilter().remove(); }
-    const fixedHeaders = ["Profile ID", "Country", "Job Title"];
-    sheet.getRange(2, 1, 1, 3).setValues([fixedHeaders]);
-    sheet.getRange(1, 1, 1, 3).merge().setValue("Profile Details").setBackground("#666666").setFontColor("white").setFontWeight("bold").setHorizontalAlignment("center");
-    sheet.getRange(2, 1, 1, 3).setBackground("#d9d9d9").setFontWeight("bold");
-    let currentCol = 4; 
+    const fixedHeaders = ["Profile ID", "Country", "Job Title", "Tier 1 Count"];
+    sheet.getRange(2, 1, 1, 4).setValues([fixedHeaders]);
+    sheet.getRange(1, 1, 1, 4).merge().setValue("Profile Details").setBackground("#666666").setFontColor("white").setFontWeight("bold").setHorizontalAlignment("center");
+    sheet.getRange(2, 1, 1, 4).setBackground("#d9d9d9").setFontWeight("bold");
+    let currentCol = 5; 
     PRODUCT_SCHEMA.forEach(group => {
       const numProducts = group.products.length;
       if (numProducts > 0) {
@@ -283,7 +293,7 @@ function formatDeepDivePivot(sheet, lastRow, lastCol) {
     const dataRange = sheet.getRange(3, 1, lastRow - 2, lastCol);
     dataRange.setHorizontalAlignment("center");
     dataRange.setBorder(true, true, true, true, true, true);
-    const scoreArea = sheet.getRange(3, 4, lastRow - 2, lastCol - 3);
+    const scoreArea = sheet.getRange(3, 5, lastRow - 2, lastCol - 4);
     const rule1 = SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo("Tier 1").setBackground("#d9ead3").setRanges([scoreArea]).build();
     const rule2 = SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo("Tier 2").setBackground("#fff2cc").setRanges([scoreArea]).build();
     const rule3 = SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo("Tier 3").setBackground("#fce5cd").setRanges([scoreArea]).build();
