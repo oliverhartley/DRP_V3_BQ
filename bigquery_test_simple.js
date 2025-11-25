@@ -133,6 +133,28 @@ function diagnosticBQ() {
   });
 }
 
+function testLatamProfiles() {
+  const PROJECT_ID = 'concord-prod';
+  const SQL_QUERY = `
+    SELECT 
+      t1.partner_name,
+      t1.profile_details.residing_country,
+      bq_domain
+    FROM \`concord-prod.service_partnercoe.drp_partner_master\` AS t1,
+    UNNEST(t1.partner_details.email_domain) AS bq_domain
+    WHERE REGEXP_REPLACE(TRIM(LOWER(bq_domain)), r'^@', '') IN ('accenture.com', 'capgemini.com', 'deloitte.com')
+    AND t1.profile_details.residing_country IN ('Argentina', 'Bolivia', 'Brazil', 'Chile', 'Colombia', 'Costa Rica', 'Cuba', 'Dominican Republic', 'Ecuador', 'El Salvador', 'Guatemala', 'Honduras', 'Mexico', 'Nicaragua', 'Panama', 'Paraguay', 'Peru', 'Uruguay', 'Venezuela')
+    LIMIT 10
+  `;
+  try {
+    const request = { query: SQL_QUERY, useLegacySql: false };
+    const results = BigQuery.Jobs.query(request, PROJECT_ID);
+    Logger.log("LATAM Profiles Success: " + JSON.stringify(results.rows));
+  } catch (e) {
+    Logger.log("LATAM Profiles Failed: " + e.toString());
+  }
+}
+
 function testSpreadsheetData() {
   const SOURCE_SS_ID = "1XUVbK_VsV-9SsUzfp8YwUF2zJr3rMQ1ANJyQWdtagos";
   const SHEET_NAME_SOURCE = "Consolidate by Partner";
