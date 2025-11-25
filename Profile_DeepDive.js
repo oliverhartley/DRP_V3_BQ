@@ -2,7 +2,7 @@
  * ****************************************
  * Google Apps Script - Profile Deep Dive (SQL Source)
  * File: Profile_DeepDive.gs
- * Version: 2.7 (EXISTS Clause for Matching)
+ * Version: 2.8 (Self-Contained Domain Handling)
  * ****************************************
  */
 
@@ -11,7 +11,7 @@ const SHEET_NAME_DEEPDIVE_SOURCE = "TEST_DeepDive_Data";
 
 function runDeepDiveQuerySource() {
   Logger.log(`1. Generating Virtual Table for ALL Partners...`);
-  const VIRTUAL_TABLE_DATA = getScoringSpreadsheetData(); 
+  const VIRTUAL_TABLE_DATA = getDeepDiveSpreadsheetData(); 
   if (!VIRTUAL_TABLE_DATA) return;
 
   Logger.log("2. Constructing Deep Dive SQL (Batch Mode)...");
@@ -81,4 +81,26 @@ function runDeepDiveQuerySource() {
   sheet.getRange(1, 1, 1, headers.length).setValues([headers]).setFontWeight("bold");
   sheet.getRange(2, 1, rows.length, rows[0].length).setValues(rows);
   Logger.log(`SUCCESS! Loaded ${rows.length} rows.`);
+}
+
+function getDeepDiveSpreadsheetData() {
+  const ss = SpreadsheetApp.openById(SOURCE_SS_ID);
+  const sheet = ss.getSheetByName(SHEET_NAME_SOURCE);
+  if (!sheet) throw new Error(`Sheet "${SHEET_NAME_SOURCE}" not found in Source Spreadsheet.`);
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 3) return ""; // Assuming start row is 3
+  const range = sheet.getRange(3, 1, lastRow - 3 + 1, 35);
+  const values = range.getValues();
+  const textStyles = sheet.getRange(3, 1, lastRow - 3 + 1, 1).getTextStyles();
+  let structList = [];
+  for (let i = 0; i < values.length; i++) {
+    const row = values[i];
+    if (textStyles[i][0].isStrikethrough()) continue;
+    let domain = String(row[34]).toLowerCase().trim().replace(/[\x00-\x1F\x7F-\x9F\u200B]/g, ""); // Column AI is index 34
+    if (domain && !domain.includes('#n/a')) {
+      const escapedDomain = domain.replace(/'/g, "\\'");
+      structList.push(`STRUCT('${escapedDomain}' AS domain)`);
+    }
+  }
+  return structList.join(',\n');
 }
