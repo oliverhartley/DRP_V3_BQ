@@ -2,8 +2,10 @@
  * ****************************************
  * Google Apps Script - Individual Partner Decks
  * File: Partner_Individual_Decks.gs
- * Version: 10.5 (Open-ended Ranges)
+ * Version: 10.6 (Fix Sheet Name & Ranges)
  * ****************************************
+ */
+const DEEPDIVE_SHEET_NAME = "Profile Deep Dive";
  */
 
 // NOTE: Uses Global Constants from Config.gs
@@ -182,7 +184,7 @@ function updatePartnerSpreadsheet(partnerName, dashData, totalProfilesFromScoreD
     // Add formula for count in N1/N2
     sheet.getRange("N1").setValue("Profiles in Selection");
     sheet.getRange("N1").setBackground("#4285f4").setFontColor("white").setFontWeight("bold").setHorizontalAlignment("center").setBorder(true, true, true, true, true, true);
-    sheet.getRange("N2").setFormula(`=IF(M2="All", ${totalProfiles}, COUNTIF('${DEEPDIVE_SHEET_NAME}'!$B$1000:$B$2000, M2))`);
+    sheet.getRange("N2").setFormula(`=IF(M2="All", ${totalProfiles}, SUMPRODUCT((TRIM('${DEEPDIVE_SHEET_NAME}'!$B$1000:$B)=M2)*1))`);
     sheet.getRange("N2").setBackground("white").setFontSize(12).setHorizontalAlignment("center").setVerticalAlignment("middle").setBorder(true, true, true, true, true, true);
 
     formatDeckSheet(sheet, dashData.length, dashData[0].length);
