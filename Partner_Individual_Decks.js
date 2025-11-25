@@ -2,7 +2,7 @@
  * ****************************************
  * Google Apps Script - Individual Partner Decks
  * File: Partner_Individual_Decks.gs
- * Version: 8.2 (Region Slicer & Counts)
+ * Version: 8.3 (Dynamic Dashboard Formulas)
  * ****************************************
  */
 
@@ -211,6 +211,22 @@ function formatDeckSheet(sheet, lastRow, lastCol) {
     solutionCol.setWrapStrategy(SpreadsheetApp.WrapStrategy.WRAP).setHorizontalAlignment("center").setTextRotation(90).setFontWeight("bold");
     sheet.getRange(2, 3, lastRow - 1, 4).setHorizontalAlignment("center"); 
 
+    // NEW: Apply dynamic formulas to the table
+    // Column A: Solutions, Column B: Products, Col C: Tier 1, Col D: Tier 2, Col E: Tier 3, Col F: Tier 4
+    // Profile Deep Dive: Col B is Country, Col D onwards are products
+    let currentProductColIndex = 4; // Start at Column D (Google Compute Engine) in Profile Deep Dive
+    for (let i = 2; i <= lastRow; i++) {
+      const product = sheet.getRange(i, 2).getValue();
+      if (product) {
+        const colLetter = columnToLetter(currentProductColIndex);
+        sheet.getRange(i, 3).setFormula(`=COUNTIFS('Profile Deep Dive'!$B:$B, IF($M$2="All", "*", $M$2), 'Profile Deep Dive'!$${colLetter}:$${colLetter}, "Tier 1")`);
+        sheet.getRange(i, 4).setFormula(`=COUNTIFS('Profile Deep Dive'!$B:$B, IF($M$2="All", "*", $M$2), 'Profile Deep Dive'!$${colLetter}:$${colLetter}, "Tier 2")`);
+        sheet.getRange(i, 5).setFormula(`=COUNTIFS('Profile Deep Dive'!$B:$B, IF($M$2="All", "*", $M$2), 'Profile Deep Dive'!$${colLetter}:$${colLetter}, "Tier 3")`);
+        sheet.getRange(i, 6).setFormula(`=COUNTIFS('Profile Deep Dive'!$B:$B, IF($M$2="All", "*", $M$2), 'Profile Deep Dive'!$${colLetter}:$${colLetter}, "Tier 4")`);
+        currentProductColIndex++;
+      }
+    }
+
     const headerRange = sheet.getRange("I1:K1");
     headerRange.setBackground("#4285f4").setFontColor("white").setFontWeight("bold").setHorizontalAlignment("center").setBorder(true, true, true, true, true, true).setWrapStrategy(SpreadsheetApp.WrapStrategy.WRAP);
 
@@ -262,4 +278,14 @@ function formatDeepDivePivot(sheet, lastRow, lastCol) {
     sheet.setFrozenColumns(3); 
     sheet.getRange(2, 1, lastRow - 1, lastCol).createFilter();
   } catch (e) { Logger.log("Matrix Formatting Error: " + e.toString()); }
+}
+
+function columnToLetter(column) {
+  let temp, letter = '';
+  while (column > 0) {
+    temp = (column - 1) % 26;
+    letter = String.fromCharCode(temp + 65) + letter;
+    column = (column - temp - 1) / 26;
+  }
+  return letter;
 }
