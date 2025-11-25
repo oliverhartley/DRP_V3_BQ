@@ -2,7 +2,7 @@
  * ****************************************
  * Google Apps Script - Individual Partner Decks
  * File: Partner_Individual_Decks.gs
- * Version: 9.3 (Tier 1 Count Column)
+ * Version: 9.4 (Fix Frozen Columns)
  * ****************************************
  */
 
@@ -274,6 +274,7 @@ function formatDeckSheet(sheet, lastRow, lastCol) {
 function formatDeepDivePivot(sheet, lastRow, lastCol) {
   try {
     if (sheet.getFilter()) { sheet.getFilter().remove(); }
+    sheet.setFrozenRows(0); sheet.setFrozenColumns(0); // Unfreeze to allow merging
     const fixedHeaders = ["Profile ID", "Country", "Job Title", "Tier 1 Count"];
     sheet.getRange(2, 1, 1, 4).setValues([fixedHeaders]);
     sheet.getRange(1, 1, 1, 4).merge().setValue("Profile Details").setBackground("#666666").setFontColor("white").setFontWeight("bold").setHorizontalAlignment("center");
@@ -300,7 +301,7 @@ function formatDeepDivePivot(sheet, lastRow, lastCol) {
     const rule4 = SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo("Tier 4").setBackground("#f4cccc").setRanges([scoreArea]).build();
     sheet.setConditionalFormatRules([rule1, rule2, rule3, rule4]);
     sheet.setFrozenRows(2);
-    sheet.setFrozenColumns(3); 
+    sheet.setFrozenColumns(4); 
     sheet.getRange(2, 1, lastRow - 1, lastCol).createFilter();
   } catch (e) { Logger.log("Matrix Formatting Error: " + e.toString()); }
 }
