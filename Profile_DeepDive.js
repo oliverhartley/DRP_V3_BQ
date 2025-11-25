@@ -2,7 +2,7 @@
  * ****************************************
  * Google Apps Script - Profile Deep Dive (SQL Source)
  * File: Profile_DeepDive.gs
- * Version: 2.2 (Fixed Syntax Error)
+ * Version: 2.3 (Added Logging & Left Join)
  * ****************************************
  */
 
@@ -51,7 +51,7 @@ function runDeepDiveQuerySource() {
       FROM
         \`concord-prod.service_partnercoe.drp_partner_master\` AS t1
       CROSS JOIN UNNEST(t1.partner_details.email_domain) AS bq_domain
-      CROSS JOIN UNNEST(t1.profile_details.score_details) AS scores
+      LEFT JOIN UNNEST(t1.profile_details.score_details) AS scores
       INNER JOIN Spreadsheet_Data AS sheet
         ON REGEXP_REPLACE(TRIM(LOWER(bq_domain)), r'^@', '') = REGEXP_REPLACE(TRIM(LOWER(sheet.domain)), r'^@', '')
       
@@ -65,6 +65,7 @@ function runDeepDiveQuerySource() {
   `;
 
   Logger.log("3. Executing BigQuery Job...");
+  Logger.log("SQL Query: " + SQL_QUERY); // Added logging
   const request = { query: SQL_QUERY, useLegacySql: false };
   const queryResults = BigQuery.Jobs.query(request, PROJECT_ID);
 
