@@ -2,7 +2,7 @@
  * ****************************************
  * Google Apps Script - Profile Deep Dive (SQL Source)
  * File: Profile_DeepDive.gs
- * Version: 2.6 (Robust Domain Matching)
+ * Version: 2.7 (EXISTS Clause for Matching)
  * ****************************************
  */
 
@@ -50,13 +50,13 @@ function runDeepDiveQuerySource() {
 
       FROM
         \`concord-prod.service_partnercoe.drp_partner_master\` AS t1
-      LEFT JOIN UNNEST(t1.partner_details.email_domain) AS bq_domain
       LEFT JOIN UNNEST(t1.profile_details.score_details) AS scores
-      INNER JOIN Spreadsheet_Data AS sheet
-        ON REGEXP_REPLACE(TRIM(LOWER(bq_domain)), r'^@', '') = REGEXP_REPLACE(TRIM(LOWER(sheet.domain)), r'^@', '')
-      
       WHERE
         t1.profile_details.residing_country IN ('Argentina', 'Bolivia', 'Brazil', 'Chile', 'Colombia', 'Costa Rica', 'Cuba', 'Dominican Republic', 'Ecuador', 'El Salvador', 'Guatemala', 'Honduras', 'Mexico', 'Nicaragua', 'Panama', 'Paraguay', 'Peru', 'Uruguay', 'Venezuela')
+        AND EXISTS (
+          SELECT 1 FROM UNNEST(t1.partner_details.email_domain) AS bq_domain
+          JOIN Spreadsheet_Data AS sheet ON REGEXP_REPLACE(TRIM(LOWER(bq_domain)), r'^@', '') = REGEXP_REPLACE(TRIM(LOWER(sheet.domain)), r'^@', '')
+        )
     )
     SELECT * FROM RawProfileData
     ORDER BY partner_name, profile_id, scored_solution, score DESC
