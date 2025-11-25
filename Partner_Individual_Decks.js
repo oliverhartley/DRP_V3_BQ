@@ -2,7 +2,7 @@
  * ****************************************
  * Google Apps Script - Individual Partner Decks
  * File: Partner_Individual_Decks.gs
- * Version: 9.1 (SUMPRODUCT & Format Fix)
+ * Version: 9.2 (Profile ID Hyperlinks)
  * ****************************************
  */
 
@@ -192,7 +192,16 @@ function updatePartnerSpreadsheet(partnerName, dashData, totalProfilesFromScoreD
   if (!diveSheet) { diveSheet = ss.insertSheet(DEEPDIVE_SHEET_NAME); } else { diveSheet.clear(); }
   if (diveSheet.getFilter()) { diveSheet.getFilter().remove(); }
   if (pivotData.length > 0) {
+    // Add hyperlinks to Profile IDs
+    for (let i = 0; i < pivotData.length; i++) {
+      const profileId = pivotData[i][0];
+      if (profileId && profileId !== "Profile ID") { // Skip header if present, though pivotData usually doesn't have it here
+        pivotData[i][0] = `=HYPERLINK("https://delivery-readiness-portal.cloud.google/app/profiles/detailed-profile-view/${profileId}", "${profileId}")`;
+      }
+    }
     diveSheet.getRange(3, 1, pivotData.length, pivotData[0].length).setValues(pivotData);
+    diveSheet.getRange(3, 1, pivotData.length, 1).setFontColor("#1155cc").setFontLine("underline");
+    diveSheet.getRange(2, 1, pivotData.length + 1, pivotData[0].length).createFilter();
     formatDeepDivePivot(diveSheet, pivotData.length + 2, pivotData[0].length);
   } else { diveSheet.getRange(1,1).setValue("No profile details available."); }
 
