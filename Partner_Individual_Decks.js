@@ -2,7 +2,7 @@
  * ****************************************
  * Google Apps Script - Individual Partner Decks
  * File: Partner_Individual_Decks.gs
- * Version: 11.0 (Dynamic Sheet Name)
+ * Version: 11.1 (Fix ReferenceError)
  * ****************************************
  */
 
@@ -153,6 +153,12 @@ function updatePartnerSpreadsheet(partnerName, dashData, totalProfilesFromScoreD
   let sheet = ss.getSheetByName(DECK_SHEET_NAME);
   if (!sheet) { sheet = ss.insertSheet(DECK_SHEET_NAME); }
   sheet.clear();
+
+  let diveSheet = ss.getSheetByName("Profile Deep Dive");
+  if (!diveSheet) { diveSheet = ss.insertSheet("Profile Deep Dive"); }
+  else { diveSheet.clear(); }
+  const actualDiveSheetName = diveSheet.getName();
+
   if (dashData.length > 0) {
     sheet.getRange(1, 1, dashData.length, dashData[0].length).setValues(dashData);
 
