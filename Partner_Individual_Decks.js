@@ -2,7 +2,7 @@
  * ****************************************
  * Google Apps Script - Individual Partner Decks
  * File: Partner_Individual_Decks.gs
- * Version: 8.3 (Dynamic Dashboard Formulas)
+ * Version: 8.4 (Zero as Hyphen Format)
  * ****************************************
  */
 
@@ -226,6 +226,8 @@ function formatDeckSheet(sheet, lastRow, lastCol) {
         currentProductColIndex++;
       }
     }
+    // Apply custom number format to show hyphen for zero
+    sheet.getRange(2, 3, lastRow - 1, 4).setNumberFormat('0;-0;"-"');
 
     const headerRange = sheet.getRange("I1:K1");
     headerRange.setBackground("#4285f4").setFontColor("white").setFontWeight("bold").setHorizontalAlignment("center").setBorder(true, true, true, true, true, true).setWrapStrategy(SpreadsheetApp.WrapStrategy.WRAP);
