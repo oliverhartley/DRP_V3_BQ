@@ -133,6 +133,23 @@ function diagnosticBQ() {
   });
 }
 
+function testAccentureProfileCount() {
+  const PROJECT_ID = 'concord-prod';
+  const SQL_QUERY = `
+    SELECT COUNT(DISTINCT t1.profile_details.profile_id) as unique_profiles
+    FROM \`concord-prod.service_partnercoe.drp_partner_master\` AS t1,
+    UNNEST(t1.partner_details.email_domain) AS bq_domain
+    WHERE REGEXP_REPLACE(TRIM(LOWER(bq_domain)), r'^@', '') = 'accenture.com'
+  `;
+  try {
+    const request = { query: SQL_QUERY, useLegacySql: false };
+    const results = BigQuery.Jobs.query(request, PROJECT_ID);
+    Logger.log("Accenture Profile Count: " + JSON.stringify(results.rows));
+  } catch (e) {
+    Logger.log("Accenture Profile Count Failed: " + e.toString());
+  }
+}
+
 function testLatamProfiles() {
   const PROJECT_ID = 'concord-prod';
   const SQL_QUERY = `
