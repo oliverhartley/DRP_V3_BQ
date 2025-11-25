@@ -2,7 +2,7 @@
  * ****************************************
  * Google Apps Script - Individual Partner Decks
  * File: Partner_Individual_Decks.gs
- * Version: 11.2 (Function Versioning)
+ * Version: 11.3 (Fix Column Expansion)
  * ****************************************
  */
 
@@ -193,6 +193,11 @@ function updatePartnerSpreadsheet(partnerName, dashData, totalProfilesFromScoreD
     const countries = [...new Set(pivotData.map(row => row[1]))].sort(); // Column 1 is Country
     const rule = SpreadsheetApp.newDataValidation().requireValueInList(["All", ...countries]).build();
     sheet.getRange("M2").setDataValidation(rule);
+
+    // Ensure diveSheet has enough columns before creating formulas that reference them
+    if (diveSheet.getMaxColumns() < pivotData[0].length) {
+      diveSheet.insertColumnsAfter(diveSheet.getMaxColumns(), pivotData[0].length - diveSheet.getMaxColumns());
+    }
 
     // Add formula for count in N1/N2
     sheet.getRange("N1").setValue("Profiles in Selection");
