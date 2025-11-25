@@ -2,7 +2,7 @@
  * ****************************************
  * Google Apps Script - Individual Partner Decks
  * File: Partner_Individual_Decks.gs
- * Version: 8.4 (Zero as Hyphen Format)
+ * Version: 8.5 (Fix Count Discrepancy)
  * ****************************************
  */
 
