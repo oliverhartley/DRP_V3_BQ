@@ -2,7 +2,7 @@
  * ****************************************
  * Google Apps Script - Individual Partner Decks
  * File: Partner_Individual_Decks.gs
- * Version: 9.11 (OR Logic Filter)
+ * Version: 10.0 (Optimized Formatting Range)
  * ****************************************
  */
 
@@ -331,11 +331,11 @@ function formatDeepDivePivot(sheet, lastRow, lastCol, rawSheetName, lastColLette
     sheet.getRange(startRow + 1, 1).setFormula(`=IFERROR(FILTER(${rawSheetName}!A2:${lastColLetter}1000, (B2="All") + (TRIM(${rawSheetName}!B2:B1000) = B2)), "No data found")`);
 
     // Formatting
-    const dataRange = sheet.getRange(startRow + 1, 1, 1000, lastCol); // Approximate range
+    const dataRange = sheet.getRange(startRow + 1, 1, 500, lastCol); // Reduced to 500 for stability
     dataRange.setHorizontalAlignment("center");
-    sheet.getRange(startRow + 1, 1, 1000, 1).setFontColor("#1155cc").setFontLine("underline"); // Restore hyperlink formatting
+    sheet.getRange(startRow + 1, 1, 500, 1).setFontColor("#1155cc").setFontLine("underline"); // Restore hyperlink formatting
     // Note: Conditional formatting might not work perfectly with dynamic filter, but let's try.
-    const scoreArea = sheet.getRange(startRow + 1, 5, 1000, lastCol - 4);
+    const scoreArea = sheet.getRange(startRow + 1, 5, 500, lastCol - 4);
     const rule1 = SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo("Tier 1").setBackground("#d9ead3").setRanges([scoreArea]).build();
     const rule2 = SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo("Tier 2").setBackground("#fff2cc").setRanges([scoreArea]).build();
     const rule3 = SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo("Tier 3").setBackground("#fce5cd").setRanges([scoreArea]).build();
