@@ -2,7 +2,7 @@
  * ****************************************
  * Google Apps Script - Individual Partner Decks
  * File: Partner_Individual_Decks.gs
- * Version: 10.0 (Optimized Formatting Range)
+ * Version: 10.1 (Fix Tier Dashboard Refs)
  * ****************************************
  */
 
@@ -182,7 +182,7 @@ function updatePartnerSpreadsheet(partnerName, dashData, totalProfilesFromScoreD
     // Add formula for count in N1/N2
     sheet.getRange("N1").setValue("Profiles in Selection");
     sheet.getRange("N1").setBackground("#4285f4").setFontColor("white").setFontWeight("bold").setHorizontalAlignment("center").setBorder(true, true, true, true, true, true);
-    sheet.getRange("N2").setFormula(`=IF(M2="All", ${totalProfiles}, COUNTIF('${DEEPDIVE_SHEET_NAME}'!B2:B, M2))`);
+    sheet.getRange("N2").setFormula(`=IF(M2="All", ${totalProfiles}, COUNTIF('Raw_Deep_Dive_Data'!B:B, M2))`);
     sheet.getRange("N2").setBackground("white").setFontSize(12).setHorizontalAlignment("center").setVerticalAlignment("middle").setBorder(true, true, true, true, true, true);
 
     formatDeckSheet(sheet, dashData.length, dashData[0].length);
@@ -269,8 +269,8 @@ function formatDeckSheet(sheet, lastRow, lastCol) {
       const product = sheet.getRange(i, 2).getValue();
       if (product) {
         const colLetter = columnToLetter(currentProductColIndex);
-        const rangeB = `'${DEEPDIVE_SHEET_NAME}'!$B:$B`;
-        const rangeCol = `'${DEEPDIVE_SHEET_NAME}'!$${colLetter}:$${colLetter}`;
+        const rangeB = `'Raw_Deep_Dive_Data'!$B:$B`;
+        const rangeCol = `'Raw_Deep_Dive_Data'!$${colLetter}:$${colLetter}`;
 
         sheet.getRange(i, 3).setFormula(`=IF($M$2="All", COUNTIFS(${rangeCol}, "Tier 1"), SUMPRODUCT((TRIM(${rangeB})=$M$2)*(${rangeCol}="Tier 1")))`);
         sheet.getRange(i, 4).setFormula(`=IF($M$2="All", COUNTIFS(${rangeCol}, "Tier 2"), SUMPRODUCT((TRIM(${rangeB})=$M$2)*(${rangeCol}="Tier 2")))`);
