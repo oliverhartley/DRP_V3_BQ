@@ -191,6 +191,22 @@ function testAccentureProfileData() {
   }
 }
 
+function testAccentureDeckGeneration() {
+  const partnerName = "Accenture";
+  try {
+    Logger.log(`Starting deck generation for ${partnerName}...`);
+    // This calls the actual function from Partner_Individual_Decks.js
+    const result = generateDeckForPartner(partnerName);
+    if (result) {
+      Logger.log(`Deck generated successfully: ${result.url}`);
+    } else {
+      Logger.log("Deck generation returned null. Check if partner exists in Score Matrix.");
+    }
+  } catch (e) {
+    Logger.log(`Error generating deck: ${e.toString()}`);
+  }
+}
+
 function testLatamProfiles() {
   const PROJECT_ID = 'concord-prod';
   const SQL_QUERY = `
