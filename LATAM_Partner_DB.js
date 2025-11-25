@@ -2,7 +2,7 @@
  * ****************************************
  * Google Apps Script - BigQuery Loader
  * File: LATAM_Partner_DB.gs
- * Version: V 5.8 - Included Unmanaged Partners
+ * Version: V 5.9 - Fixed Filter Column Names
  * ****************************************
  */
 
@@ -137,7 +137,7 @@ function runBigQueryQuery() {
               STRING_AGG(DISTINCT up.residing_country, ', ') AS Operating_Countries,
               (APPROX_TOP_COUNT(up.residing_country, 1))[OFFSET(0)].value AS Top_Operating_Country,
               pf.is_matched AS Managed_Partners,
-              pf.is_gsi, pf.is_brazil, pf.is_mco, pf.is_mexico, pf.is_ps,
+              pf.is_gsi AS GSI, pf.is_brazil AS Brazil, pf.is_mco AS MCO, pf.is_mexico AS Mexico, pf.is_ps AS PS,
               pf.is_ai_ml, pf.is_gws, pf.is_security, pf.is_db, pf.is_analytics, pf.is_infra, pf.is_app_mod,
               pf.domains
           FROM UniqueProfiles up
