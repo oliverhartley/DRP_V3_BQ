@@ -2,7 +2,7 @@
  * ****************************************
  * Google Apps Script - BigQuery Loader
  * File: LATAM_Partner_DB.gs
- * Version: V 5.7 - Simplified Join & Robust Booleans
+ * Version: V 5.8 - Included Unmanaged Partners
  * ****************************************
  */
 
@@ -80,7 +80,7 @@ function runBigQueryQuery() {
           WHERE t1.profile_details.residing_country IN ('Argentina', 'Bolivia', 'Brazil', 'Chile', 'Colombia', 'Costa Rica', 'Cuba', 'Dominican Republic', 'Ecuador', 'El Salvador', 'Guatemala', 'Honduras', 'Mexico', 'Nicaragua', 'Panama', 'Paraguay', 'Peru', 'Uruguay', 'Venezuela')
       ),
       
-      -- 2. Filter to Matched Partners & Get Unique Profiles
+      -- 2. Get Unique Profiles (All Partners)
       UniqueProfiles AS (
           SELECT DISTINCT
               partner_id,
@@ -88,13 +88,13 @@ function runBigQueryQuery() {
               profile_id,
               residing_country
           FROM RawData
-          WHERE is_matched = true
       ),
       
       -- 3. Aggregate Partner Flags (Handle multiple matched domains)
       PartnerFlags AS (
           SELECT
               partner_id,
+              LOGICAL_OR(is_matched) as is_matched,
               LOGICAL_OR(is_gsi) as is_gsi,
               LOGICAL_OR(is_brazil) as is_brazil,
               LOGICAL_OR(is_mco) as is_mco,
@@ -109,7 +109,6 @@ function runBigQueryQuery() {
               LOGICAL_OR(is_app_mod) as is_app_mod,
               ARRAY_AGG(DISTINCT bq_domain) as domains
           FROM RawData
-          WHERE is_matched = true
           GROUP BY partner_id
       ),
       
@@ -137,13 +136,13 @@ function runBigQueryQuery() {
               COUNT(DISTINCT up.profile_id) AS Total_Profiles,
               STRING_AGG(DISTINCT up.residing_country, ', ') AS Operating_Countries,
               (APPROX_TOP_COUNT(up.residing_country, 1))[OFFSET(0)].value AS Top_Operating_Country,
-              TRUE AS Managed_Partners,
+              pf.is_matched AS Managed_Partners,
               pf.is_gsi, pf.is_brazil, pf.is_mco, pf.is_mexico, pf.is_ps,
               pf.is_ai_ml, pf.is_gws, pf.is_security, pf.is_db, pf.is_analytics, pf.is_infra, pf.is_app_mod,
               pf.domains
           FROM UniqueProfiles up
           JOIN PartnerFlags pf ON up.partner_id = pf.partner_id
-          GROUP BY up.partner_id, up.partner_name, pf.is_gsi, pf.is_brazil, pf.is_mco, pf.is_mexico, pf.is_ps, pf.is_ai_ml, pf.is_gws, pf.is_security, pf.is_db, pf.is_analytics, pf.is_infra, pf.is_app_mod, pf.domains
+          GROUP BY up.partner_id, up.partner_name, pf.is_matched, pf.is_gsi, pf.is_brazil, pf.is_mco, pf.is_mexico, pf.is_ps, pf.is_ai_ml, pf.is_gws, pf.is_security, pf.is_db, pf.is_analytics, pf.is_infra, pf.is_app_mod, pf.domains
       )
       SELECT 
           pa.* EXCEPT (domains), 
