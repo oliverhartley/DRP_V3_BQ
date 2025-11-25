@@ -2,7 +2,7 @@
  * ****************************************
  * Google Apps Script - Individual Partner Decks
  * File: Partner_Individual_Decks.gs
- * Version: 10.3 (Fix Headers & Formula)
+ * Version: 10.4 (Same Sheet Data)
  * ****************************************
  */
 
@@ -182,7 +182,7 @@ function updatePartnerSpreadsheet(partnerName, dashData, totalProfilesFromScoreD
     // Add formula for count in N1/N2
     sheet.getRange("N1").setValue("Profiles in Selection");
     sheet.getRange("N1").setBackground("#4285f4").setFontColor("white").setFontWeight("bold").setHorizontalAlignment("center").setBorder(true, true, true, true, true, true);
-    sheet.getRange("N2").setFormula(`=IF(M2="All", ${totalProfiles}, COUNTIF('Raw_Deep_Dive_Data'!B:B, M2))`);
+    sheet.getRange("N2").setFormula(`=IF(M2="All", ${totalProfiles}, COUNTIF('${DEEPDIVE_SHEET_NAME}'!$B$1000:$B$2000, M2))`);
     sheet.getRange("N2").setBackground("white").setFontSize(12).setHorizontalAlignment("center").setVerticalAlignment("middle").setBorder(true, true, true, true, true, true);
 
     formatDeckSheet(sheet, dashData.length, dashData[0].length);
@@ -210,17 +210,14 @@ function updatePartnerSpreadsheet(partnerName, dashData, totalProfilesFromScoreD
       }
     }
 
-    // Create hidden raw data sheet
-    const rawSheetName = "Raw_Deep_Dive_Data";
-    let rawSheet = ss.getSheetByName(rawSheetName);
-    if (!rawSheet) { rawSheet = ss.insertSheet(rawSheetName); } else { rawSheet.clear(); }
-    rawSheet.hideSheet();
-    rawSheet.getRange(1, 1, pivotData.length, pivotData[0].length).setValues(pivotData);
-
     // Setup Profile Deep Dive sheet with Selector
     diveSheet.clear();
     if (diveSheet.getFilter()) { diveSheet.getFilter().remove(); }
     diveSheet.getSlicers().forEach(s => s.remove());
+
+    // Write raw data far down (Row 1000) to keep it hidden but on same sheet
+    const rawDataStartRow = 1000;
+    diveSheet.getRange(rawDataStartRow, 1, pivotData.length, pivotData[0].length).setValues(pivotData);
 
     // Selector UI
     diveSheet.getRange("A1:D4").setBackground("#f3f3f3").setBorder(true, true, true, true, true, true);
@@ -243,7 +240,7 @@ function updatePartnerSpreadsheet(partnerName, dashData, totalProfilesFromScoreD
     // Actually, it's better to have headers static and filter only data.
 
     // Static Headers for Deep Dive
-    formatDeepDivePivot(diveSheet, pivotData.length + 2, pivotData[0].length, rawSheetName, lastColLetter);
+    formatDeepDivePivot(diveSheet, pivotData.length + 2, pivotData[0].length, rawDataStartRow);
 
   } else { diveSheet.getRange(1,1).setValue("No profile details available."); }
 
@@ -269,8 +266,8 @@ function formatDeckSheet(sheet, lastRow, lastCol) {
       const product = sheet.getRange(i, 2).getValue();
       if (product) {
         const colLetter = columnToLetter(currentProductColIndex);
-        const rangeB = `'Raw_Deep_Dive_Data'!$B:$B`;
-        const rangeCol = `'Raw_Deep_Dive_Data'!$${colLetter}:$${colLetter}`;
+        const rangeB = `'${DEEPDIVE_SHEET_NAME}'!$B$1000:$B$2000`;
+        const rangeCol = `'${DEEPDIVE_SHEET_NAME}'!$${colLetter}$1000:$${colLetter}$2000`;
 
         sheet.getRange(i, 3).setFormula(`=IF($M$2="All", COUNTIFS(${rangeCol}, "Tier 1"), SUMPRODUCT((TRIM(${rangeB})=$M$2)*(${rangeCol}="Tier 1")))`);
         sheet.getRange(i, 4).setFormula(`=IF($M$2="All", COUNTIFS(${rangeCol}, "Tier 2"), SUMPRODUCT((TRIM(${rangeB})=$M$2)*(${rangeCol}="Tier 2")))`);
@@ -303,7 +300,7 @@ function formatDeckSheet(sheet, lastRow, lastCol) {
   } catch (e) {}
 }
 
-function formatDeepDivePivot(sheet, lastRow, lastCol, rawSheetName, lastColLetter) {
+function formatDeepDivePivot(sheet, lastRow, lastCol, rawDataStartRow) {
   try {
     const startRow = 6;
     sheet.setFrozenRows(0); sheet.setFrozenColumns(0);
@@ -327,8 +324,8 @@ function formatDeepDivePivot(sheet, lastRow, lastCol, rawSheetName, lastColLette
     // Apply FILTER formula
     // Since we want to keep formatting, we might need to apply the formula to data rows only, but FILTER returns multiple rows.
     // Better to just use the formula in A7 (first data row) and keep A6 as static headers.
-
-    sheet.getRange(startRow + 1, 1).setFormula(`=IFERROR(FILTER(${rawSheetName}!A2:${lastColLetter}1000, (${rawSheetName}!B2:B1000 = B2) + (B2="All")), "No data found")`);
+    const lastColLetter = columnToLetter(lastCol);
+    sheet.getRange(startRow + 1, 1).setFormula(`=IFERROR(FILTER(A${rawDataStartRow}:${lastColLetter}${rawDataStartRow + 1000}, (B${rawDataStartRow}:B${rawDataStartRow + 1000} = B2) + (B2="All")), "No data found")`);
 
     // Formatting
     const dataRange = sheet.getRange(startRow + 1, 1, 500, lastCol); // Reduced to 500 for stability
