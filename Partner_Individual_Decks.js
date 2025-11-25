@@ -2,7 +2,7 @@
  * ****************************************
  * Google Apps Script - Individual Partner Decks
  * File: Partner_Individual_Decks.gs
- * Version: 9.0 (Explicit Formulas & Format Fix)
+ * Version: 9.1 (SUMPRODUCT & Format Fix)
  * ****************************************
  */
 
@@ -218,13 +218,13 @@ function formatDeckSheet(sheet, lastRow, lastCol) {
       const product = sheet.getRange(i, 2).getValue();
       if (product) {
         const colLetter = columnToLetter(currentProductColIndex);
-        const rangeB = `'${DEEP_DIVE_SHEET_NAME}'!$B:$B`;
-        const rangeCol = `'${DEEP_DIVE_SHEET_NAME}'!$${colLetter}:$${colLetter}`;
+        const rangeB = `'${DEEPDIVE_SHEET_NAME}'!$B:$B`;
+        const rangeCol = `'${DEEPDIVE_SHEET_NAME}'!$${colLetter}:$${colLetter}`;
 
-        sheet.getRange(i, 3).setFormula(`=IF($M$2="All", COUNTIFS(${rangeCol}, "Tier 1"), COUNTIFS(${rangeB}, $M$2, ${rangeCol}, "Tier 1"))`);
-        sheet.getRange(i, 4).setFormula(`=IF($M$2="All", COUNTIFS(${rangeCol}, "Tier 2"), COUNTIFS(${rangeB}, $M$2, ${rangeCol}, "Tier 2"))`);
-        sheet.getRange(i, 5).setFormula(`=IF($M$2="All", COUNTIFS(${rangeCol}, "Tier 3"), COUNTIFS(${rangeB}, $M$2, ${rangeCol}, "Tier 3"))`);
-        sheet.getRange(i, 6).setFormula(`=IF($M$2="All", COUNTIFS(${rangeCol}, "Tier 4"), COUNTIFS(${rangeB}, $M$2, ${rangeCol}, "Tier 4"))`);
+        sheet.getRange(i, 3).setFormula(`=IF($M$2="All", COUNTIFS(${rangeCol}, "Tier 1"), SUMPRODUCT((TRIM(${rangeB})=$M$2)*(${rangeCol}="Tier 1")))`);
+        sheet.getRange(i, 4).setFormula(`=IF($M$2="All", COUNTIFS(${rangeCol}, "Tier 2"), SUMPRODUCT((TRIM(${rangeB})=$M$2)*(${rangeCol}="Tier 2")))`);
+        sheet.getRange(i, 5).setFormula(`=IF($M$2="All", COUNTIFS(${rangeCol}, "Tier 3"), SUMPRODUCT((TRIM(${rangeB})=$M$2)*(${rangeCol}="Tier 3")))`);
+        sheet.getRange(i, 6).setFormula(`=IF($M$2="All", COUNTIFS(${rangeCol}, "Tier 4"), SUMPRODUCT((TRIM(${rangeB})=$M$2)*(${rangeCol}="Tier 4")))`);
         currentProductColIndex++;
       }
     }
@@ -244,7 +244,7 @@ function formatDeckSheet(sheet, lastRow, lastCol) {
     };
     for (let i = 1; i < values.length; i++) { if (values[i][0] !== currentVal) { applyBlockFormat(mergeStartRow, i+2, currentVal); mergeStartRow = i+2; currentVal = values[i][0]; } }
     applyBlockFormat(mergeStartRow, lastRow + 1, currentVal);
-    sheet.setColumnWidth(1, 60); // Reduced width for vertical text
+    sheet.setColumnWidth(1, 40); // Adjusted width for vertical text
     sheet.setColumnWidth(2, 250);
     sheet.setColumnWidths(3, 4, 60);
     sheet.setColumnWidth(9, 100); sheet.setColumnWidth(10, 100); sheet.setColumnWidth(11, 100);
