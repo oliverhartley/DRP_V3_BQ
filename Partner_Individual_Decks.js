@@ -2,7 +2,7 @@
  * ****************************************
  * Google Apps Script - Individual Partner Decks
  * File: Partner_Individual_Decks.gs
- * Version: 8.1 (Detailed Profile Counts)
+ * Version: 8.2 (Region Slicer & Counts)
  * ****************************************
  */
 
@@ -168,6 +168,23 @@ function updatePartnerSpreadsheet(partnerName, dashData, totalProfilesFromScoreD
     sheet.getRange("J2").setValue(profilesWithoutTier);
     sheet.getRange("K2").setValue(totalProfiles);
 
+    // --- NEW: Region Slicer ---
+    sheet.getRange("M1").setValue("Select Region / Country");
+    sheet.getRange("M2").setValue("All"); // Default to All
+    sheet.getRange("M1").setBackground("#4285f4").setFontColor("white").setFontWeight("bold").setHorizontalAlignment("center").setBorder(true, true, true, true, true, true);
+    sheet.getRange("M2").setBackground("#fff2cc").setFontSize(12).setHorizontalAlignment("center").setVerticalAlignment("middle").setBorder(true, true, true, true, true, true);
+
+    // Add dropdown for Region/Country
+    const countries = [...new Set(pivotData.map(row => row[1]))].sort(); // Column 1 is Country
+    const rule = SpreadsheetApp.newDataValidation().requireValueInList(["All", ...countries]).build();
+    sheet.getRange("M2").setDataValidation(rule);
+
+    // Add formula for count in N1/N2
+    sheet.getRange("N1").setValue("Profiles in Selection");
+    sheet.getRange("N1").setBackground("#4285f4").setFontColor("white").setFontWeight("bold").setHorizontalAlignment("center").setBorder(true, true, true, true, true, true);
+    sheet.getRange("N2").setFormula(`=COUNTIF('Profile Deep Dive'!B:B, IF(M2="All", "*", M2))`);
+    sheet.getRange("N2").setBackground("white").setFontSize(12).setHorizontalAlignment("center").setVerticalAlignment("middle").setBorder(true, true, true, true, true, true);
+
     formatDeckSheet(sheet, dashData.length, dashData[0].length);
   }
 
@@ -209,6 +226,7 @@ function formatDeckSheet(sheet, lastRow, lastCol) {
     applyBlockFormat(mergeStartRow, lastRow + 1, currentVal);
     sheet.setColumnWidth(1, 150); sheet.setColumnWidth(2, 250); sheet.setColumnWidths(3, 4, 60);
     sheet.setColumnWidth(9, 100); sheet.setColumnWidth(10, 100); sheet.setColumnWidth(11, 100);
+    sheet.setColumnWidth(13, 150); sheet.setColumnWidth(14, 150);
   } catch (e) {}
 }
 
