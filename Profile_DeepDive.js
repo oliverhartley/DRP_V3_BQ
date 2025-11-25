@@ -2,7 +2,7 @@
  * ****************************************
  * Google Apps Script - Profile Deep Dive (SQL Source)
  * File: Profile_DeepDive.gs
- * Version: 2.3 (Added Logging & Left Join)
+ * Version: 2.4 (Corrected UNNEST Syntax)
  * ****************************************
  */
 
@@ -49,9 +49,9 @@ function runDeepDiveQuerySource() {
         END AS scored_solution
 
       FROM
-        \`concord-prod.service_partnercoe.drp_partner_master\` AS t1
-      CROSS JOIN UNNEST(t1.partner_details.email_domain) AS bq_domain
-      LEFT JOIN UNNEST(t1.profile_details.score_details) AS scores
+        \`concord-prod.service_partnercoe.drp_partner_master\` AS t1,
+        UNNEST(t1.partner_details.email_domain) AS bq_domain,
+        UNNEST(t1.profile_details.score_details) AS scores
       INNER JOIN Spreadsheet_Data AS sheet
         ON REGEXP_REPLACE(TRIM(LOWER(bq_domain)), r'^@', '') = REGEXP_REPLACE(TRIM(LOWER(sheet.domain)), r'^@', '')
       
