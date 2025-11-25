@@ -2,7 +2,7 @@
  * ****************************************
  * Google Apps Script - Individual Partner Decks
  * File: Partner_Individual_Decks.gs
- * Version: 11.1 (Fix ReferenceError)
+ * Version: 11.2 (Function Versioning)
  * ****************************************
  */
 
@@ -101,7 +101,17 @@ function getPartnerDataFromMaster(partnerName) {
   return { solutions: headers[0], products: headers[1], tiers: headers[2], data: partnerRow, totalProfiles: partnerRow[2] };
 }
 
-function getDeepDiveData(partnerName) {
+function generatePartnerDeck(partnerName) {
+  // Version 11.2
+  const ss = SpreadsheetApp.create(`${partnerName} - Partner Dashboard`);
+  const sheet = ss.getSheetByName(SOURCE_DEEPDIVE_SHEET);
+  if (!sheet) return [];
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return [];
+  const data = sheet.getRange(2, 1, lastRow - 1, 8).getValues();
+}
+
+function getDeepDiveData(partnerName) { // Version 11.2
   const ss = SpreadsheetApp.openById(DESTINATION_SS_ID);
   const sheet = ss.getSheetByName(SOURCE_DEEPDIVE_SHEET);
   if (!sheet) return [];
@@ -252,6 +262,7 @@ function updatePartnerSpreadsheet(partnerName, dashData, totalProfilesFromScoreD
 }
 
 function formatDeckSheet(sheet, lastRow, lastCol, diveSheetName) {
+  // Version 11.2
   try {
     const colorMap = { 'Infrastructure Modernization': '#fce5cd', 'Application Modernization': '#fff2cc', 'Databases': '#d9ead3', 'Data & Analytics': '#d0e0e3', 'Artificial Intelligence': '#c9daf8', 'Security': '#cfe2f3', 'Workspace': '#d9d2e9' };
     sheet.getRange(1, 1, 1, lastCol).setBackground("#4285f4").setFontColor("white").setFontWeight("bold").setHorizontalAlignment("center");
@@ -304,6 +315,7 @@ function formatDeckSheet(sheet, lastRow, lastCol, diveSheetName) {
 }
 
 function formatDeepDivePivot(sheet, lastRow, lastCol, rawDataStartRow) {
+  // Version 11.2
   try {
     const startRow = 6;
     sheet.setFrozenRows(0); sheet.setFrozenColumns(0);
