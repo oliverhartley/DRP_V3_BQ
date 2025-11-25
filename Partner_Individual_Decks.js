@@ -2,10 +2,8 @@
  * ****************************************
  * Google Apps Script - Individual Partner Decks
  * File: Partner_Individual_Decks.gs
- * Version: 10.6 (Fix Sheet Name & Ranges)
+ * Version: 10.7 (Fix Syntax)
  * ****************************************
- */
-const DEEPDIVE_SHEET_NAME = "Profile Deep Dive";
  */
 
 // NOTE: Uses Global Constants from Config.gs
