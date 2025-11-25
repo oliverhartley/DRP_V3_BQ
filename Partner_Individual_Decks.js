@@ -2,7 +2,7 @@
  * ****************************************
  * Google Apps Script - Individual Partner Decks
  * File: Partner_Individual_Decks.gs
- * Version: 10.9 (Fix Remaining References)
+ * Version: 11.0 (Dynamic Sheet Name)
  * ****************************************
  */
 
@@ -181,15 +181,12 @@ function updatePartnerSpreadsheet(partnerName, dashData, totalProfilesFromScoreD
     // Add formula for count in N1/N2
     sheet.getRange("N1").setValue("Profiles in Selection");
     sheet.getRange("N1").setBackground("#4285f4").setFontColor("white").setFontWeight("bold").setHorizontalAlignment("center").setBorder(true, true, true, true, true, true);
-    sheet.getRange("N2").setFormula(`=IF(M2="All", ${totalProfiles}, SUMPRODUCT((TRIM('Profile Deep Dive'!$B$1000:$B)=M2)*1))`);
+    sheet.getRange("N2").setFormula(`=IF(M2="All", ${totalProfiles}, SUMPRODUCT((TRIM('${actualDiveSheetName}'!$B$1000:$B)=M2)*1))`);
     sheet.getRange("N2").setBackground("white").setFontSize(12).setHorizontalAlignment("center").setVerticalAlignment("middle").setBorder(true, true, true, true, true, true);
 
-    formatDeckSheet(sheet, dashData.length, dashData[0].length);
+    formatDeckSheet(sheet, dashData.length, dashData[0].length, actualDiveSheetName);
   }
 
-  let diveSheet = ss.getSheetByName("Profile Deep Dive");
-  if (!diveSheet) { diveSheet = ss.insertSheet("Profile Deep Dive"); }
-  else { diveSheet.clear(); }
   if (diveSheet.getFilter()) { diveSheet.getFilter().remove(); }
   if (pivotData.length > 0) {
     // Add hyperlinks and count Tier 1s
@@ -248,7 +245,7 @@ function updatePartnerSpreadsheet(partnerName, dashData, totalProfilesFromScoreD
   return { url: ss.getUrl(), status: actionStatus };
 }
 
-function formatDeckSheet(sheet, lastRow, lastCol) {
+function formatDeckSheet(sheet, lastRow, lastCol, diveSheetName) {
   try {
     const colorMap = { 'Infrastructure Modernization': '#fce5cd', 'Application Modernization': '#fff2cc', 'Databases': '#d9ead3', 'Data & Analytics': '#d0e0e3', 'Artificial Intelligence': '#c9daf8', 'Security': '#cfe2f3', 'Workspace': '#d9d2e9' };
     sheet.getRange(1, 1, 1, lastCol).setBackground("#4285f4").setFontColor("white").setFontWeight("bold").setHorizontalAlignment("center");
@@ -266,8 +263,8 @@ function formatDeckSheet(sheet, lastRow, lastCol) {
       const product = sheet.getRange(i, 2).getValue();
       if (product) {
         const colLetter = columnToLetter(currentProductColIndex);
-        const rangeB = `'Profile Deep Dive'!$B$1000:$B`;
-        const rangeCol = `'Profile Deep Dive'!$${colLetter}$1000:$${colLetter}`;
+        const rangeB = `'${diveSheetName}'!$B$1000:$B`;
+        const rangeCol = `'${diveSheetName}'!$${colLetter}$1000:$${colLetter}`;
 
         sheet.getRange(i, 3).setFormula(`=IF($M$2="All", COUNTIFS(${rangeCol}, "Tier 1"), SUMPRODUCT((TRIM(${rangeB})=$M$2)*(${rangeCol}="Tier 1")))`);
         sheet.getRange(i, 4).setFormula(`=IF($M$2="All", COUNTIFS(${rangeCol}, "Tier 2"), SUMPRODUCT((TRIM(${rangeB})=$M$2)*(${rangeCol}="Tier 2")))`);
