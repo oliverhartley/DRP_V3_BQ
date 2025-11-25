@@ -2,7 +2,7 @@
  * ****************************************
  * Google Apps Script - Individual Partner Decks
  * File: Partner_Individual_Decks.gs
- * Version: 8.0 (Auto-Save Links)
+ * Version: 8.1 (Detailed Profile Counts)
  * ****************************************
  */
 
@@ -143,7 +143,7 @@ function transposeDataForDeck(source) {
   return output;
 }
 
-function updatePartnerSpreadsheet(partnerName, dashData, totalProfiles, pivotData) {
+function updatePartnerSpreadsheet(partnerName, dashData, totalProfilesFromScoreData, pivotData) {
   const fileName = `${partnerName} - Partner Dashboard`;
   const folder = DriveApp.getFolderById(PARTNER_FOLDER_ID); 
   let file, ss, actionStatus;
@@ -156,7 +156,18 @@ function updatePartnerSpreadsheet(partnerName, dashData, totalProfiles, pivotDat
   sheet.clear();
   if (dashData.length > 0) {
     sheet.getRange(1, 1, dashData.length, dashData[0].length).setValues(dashData);
-    sheet.getRange("I1").setValue("Total Profiles"); sheet.getRange("I2").setValue(totalProfiles);
+
+    const totalProfiles = pivotData.length;
+    const profilesWithTier = totalProfiles > 0 ? Number(totalProfilesFromScoreData) : 0; // Rename arg for clarity
+    const profilesWithoutTier = Math.max(0, totalProfiles - profilesWithTier);
+
+    sheet.getRange("I1").setValue("Profiles with Tier");
+    sheet.getRange("J1").setValue("Profiles with no Tiers");
+    sheet.getRange("K1").setValue("Total Profiles");
+    sheet.getRange("I2").setValue(profilesWithTier);
+    sheet.getRange("J2").setValue(profilesWithoutTier);
+    sheet.getRange("K2").setValue(totalProfiles);
+
     formatDeckSheet(sheet, dashData.length, dashData[0].length);
   }
 
@@ -182,8 +193,12 @@ function formatDeckSheet(sheet, lastRow, lastCol) {
     const solutionCol = sheet.getRange(2, 1, lastRow - 1, 1);
     solutionCol.setWrapStrategy(SpreadsheetApp.WrapStrategy.WRAP).setHorizontalAlignment("center").setTextRotation(90).setFontWeight("bold");
     sheet.getRange(2, 3, lastRow - 1, 4).setHorizontalAlignment("center"); 
-    sheet.getRange("I1:J1").merge().setBackground("#4285f4").setFontColor("white").setFontWeight("bold").setHorizontalAlignment("center").setBorder(true,true,true,true,true,true);
-    sheet.getRange("I2:J2").merge().setBackground("white").setFontSize(12).setHorizontalAlignment("center").setVerticalAlignment("middle").setBorder(true,true,true,true,true,true);
+
+    const headerRange = sheet.getRange("I1:K1");
+    headerRange.setBackground("#4285f4").setFontColor("white").setFontWeight("bold").setHorizontalAlignment("center").setBorder(true, true, true, true, true, true).setWrapStrategy(SpreadsheetApp.WrapStrategy.WRAP);
+
+    const valueRange = sheet.getRange("I2:K2");
+    valueRange.setBackground("white").setFontSize(12).setHorizontalAlignment("center").setVerticalAlignment("middle").setBorder(true, true, true, true, true, true);
     const values = solutionCol.getValues();
     let mergeStartRow = 2; let currentVal = values[0][0];
     const applyBlockFormat = (startRow, endRow, val) => {
@@ -193,6 +208,7 @@ function formatDeckSheet(sheet, lastRow, lastCol) {
     for (let i = 1; i < values.length; i++) { if (values[i][0] !== currentVal) { applyBlockFormat(mergeStartRow, i+2, currentVal); mergeStartRow = i+2; currentVal = values[i][0]; } }
     applyBlockFormat(mergeStartRow, lastRow + 1, currentVal);
     sheet.setColumnWidth(1, 150); sheet.setColumnWidth(2, 250); sheet.setColumnWidths(3, 4, 60);
+    sheet.setColumnWidth(9, 100); sheet.setColumnWidth(10, 100); sheet.setColumnWidth(11, 100);
   } catch (e) {}
 }
 
