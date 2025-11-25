@@ -151,6 +151,46 @@ function testAccentureProfileCount() {
   }
 }
 
+function testAccentureProfileData() {
+  const PROJECT_ID = 'concord-prod';
+  const DESTINATION_SS_ID = "1i_C2AdhnxqPqEAQrr3thhJGK_3cwXJhRrmnXQpPvtD0"; // From Config.gs
+  const SQL_QUERY = `
+    SELECT 
+      t1.partner_name,
+      t1.profile_details.profile_id,
+      t1.profile_details.residing_country,
+      bq_domain
+    FROM \`concord-prod.service_partnercoe.drp_partner_master\` AS t1,
+    UNNEST(t1.partner_details.email_domain) AS bq_domain
+    WHERE REGEXP_REPLACE(TRIM(LOWER(bq_domain)), r'^@', '') = 'accenture.com'
+    AND t1.profile_details.residing_country IN ('Argentina', 'Bolivia', 'Brazil', 'Chile', 'Colombia', 'Costa Rica', 'Cuba', 'Dominican Republic', 'Ecuador', 'El Salvador', 'Guatemala', 'Honduras', 'Mexico', 'Nicaragua', 'Panama', 'Paraguay', 'Peru', 'Uruguay', 'Venezuela')
+  `;
+  try {
+    const request = { query: SQL_QUERY, useLegacySql: false };
+    const results = BigQuery.Jobs.query(request, PROJECT_ID);
+    if (!results.rows || results.rows.length === 0) {
+      Logger.log("No data found.");
+      return;
+    }
+    const ss = SpreadsheetApp.openById(DESTINATION_SS_ID);
+    let sheet = ss.getSheetByName("Accenture_Test");
+    if (!sheet) {
+      sheet = ss.insertSheet("Accenture_Test");
+    } else {
+      sheet.clear();
+    }
+    const headers = results.schema.fields.map(f => f.name);
+    const data = [headers];
+    results.rows.forEach(row => {
+      data.push(row.f.map(field => field.v));
+    });
+    sheet.getRange(1, 1, data.length, data[0].length).setValues(data);
+    Logger.log("Data written to Accenture_Test sheet.");
+  } catch (e) {
+    Logger.log("Accenture Profile Data Failed: " + e.toString());
+  }
+}
+
 function testLatamProfiles() {
   const PROJECT_ID = 'concord-prod';
   const SQL_QUERY = `
