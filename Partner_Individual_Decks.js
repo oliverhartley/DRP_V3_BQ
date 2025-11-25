@@ -2,7 +2,7 @@
  * ****************************************
  * Google Apps Script - Individual Partner Decks
  * File: Partner_Individual_Decks.gs
- * Version: 10.4 (Same Sheet Data)
+ * Version: 10.5 (Open-ended Ranges)
  * ****************************************
  */
 
@@ -266,8 +266,8 @@ function formatDeckSheet(sheet, lastRow, lastCol) {
       const product = sheet.getRange(i, 2).getValue();
       if (product) {
         const colLetter = columnToLetter(currentProductColIndex);
-        const rangeB = `'${DEEPDIVE_SHEET_NAME}'!$B$1000:$B$2000`;
-        const rangeCol = `'${DEEPDIVE_SHEET_NAME}'!$${colLetter}$1000:$${colLetter}$2000`;
+        const rangeB = `'${DEEPDIVE_SHEET_NAME}'!$B$1000:$B`;
+        const rangeCol = `'${DEEPDIVE_SHEET_NAME}'!$${colLetter}$1000:$${colLetter}`;
 
         sheet.getRange(i, 3).setFormula(`=IF($M$2="All", COUNTIFS(${rangeCol}, "Tier 1"), SUMPRODUCT((TRIM(${rangeB})=$M$2)*(${rangeCol}="Tier 1")))`);
         sheet.getRange(i, 4).setFormula(`=IF($M$2="All", COUNTIFS(${rangeCol}, "Tier 2"), SUMPRODUCT((TRIM(${rangeB})=$M$2)*(${rangeCol}="Tier 2")))`);
@@ -304,6 +304,9 @@ function formatDeepDivePivot(sheet, lastRow, lastCol, rawDataStartRow) {
   try {
     const startRow = 6;
     sheet.setFrozenRows(0); sheet.setFrozenColumns(0);
+    if (sheet.getMaxColumns() < lastCol) {
+      sheet.insertColumnsAfter(sheet.getMaxColumns(), lastCol - sheet.getMaxColumns());
+    }
     const fixedHeaders = ["Profile ID", "Country", "Job Title", "Tier 1 Count"];
     sheet.getRange(startRow, 1, 1, 4).setValues([fixedHeaders]);
     sheet.getRange(startRow - 1, 1, 1, 4).merge().setValue("Profile Details").setBackground("#666666").setFontColor("white").setFontWeight("bold").setHorizontalAlignment("center");
