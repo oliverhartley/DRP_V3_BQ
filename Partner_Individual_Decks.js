@@ -2,7 +2,7 @@
  * ****************************************
  * Google Apps Script - Individual Partner Decks
  * File: Partner_Individual_Decks.gs
- * Version: 8.6 (Fix Count Discrepancy Take 2)
+ * Version: 8.7 (Robust Count Formula)
  * ****************************************
  */
 
@@ -182,7 +182,7 @@ function updatePartnerSpreadsheet(partnerName, dashData, totalProfilesFromScoreD
     // Add formula for count in N1/N2
     sheet.getRange("N1").setValue("Profiles in Selection");
     sheet.getRange("N1").setBackground("#4285f4").setFontColor("white").setFontWeight("bold").setHorizontalAlignment("center").setBorder(true, true, true, true, true, true);
-    sheet.getRange("N2").setFormula(`=COUNTIF('Profile Deep Dive'!B2:B, IF(M2="All", "*", M2))`);
+    sheet.getRange("N2").setFormula(`=IF(M2="All", COUNTA('Profile Deep Dive'!B2:B), COUNTIF('Profile Deep Dive'!B2:B, M2))`);
     sheet.getRange("N2").setBackground("white").setFontSize(12).setHorizontalAlignment("center").setVerticalAlignment("middle").setBorder(true, true, true, true, true, true);
 
     formatDeckSheet(sheet, dashData.length, dashData[0].length);
