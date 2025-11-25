@@ -2,7 +2,7 @@
  * ****************************************
  * Google Apps Script - Individual Partner Decks
  * File: Partner_Individual_Decks.gs
- * Version: 9.5 (Country Slicer)
+ * Version: 9.6 (Selector with FILTER)
  * ****************************************
  */
 
@@ -209,10 +209,42 @@ function updatePartnerSpreadsheet(partnerName, dashData, totalProfilesFromScoreD
         row[0] = `=HYPERLINK("https://delivery-readiness-portal.cloud.google/app/profiles/detailed-profile-view/${profileId}", "${profileId}")`;
       }
     }
-    diveSheet.getRange(3, 1, pivotData.length, pivotData[0].length).setValues(pivotData);
-    diveSheet.getRange(3, 1, pivotData.length, 1).setFontColor("#1155cc").setFontLine("underline");
-    diveSheet.getRange(2, 1, pivotData.length + 1, pivotData[0].length).createFilter();
-    formatDeepDivePivot(diveSheet, pivotData.length + 2, pivotData[0].length);
+
+    // Create hidden raw data sheet
+    const rawSheetName = "Raw_Deep_Dive_Data";
+    let rawSheet = ss.getSheetByName(rawSheetName);
+    if (!rawSheet) { rawSheet = ss.insertSheet(rawSheetName); } else { rawSheet.clear(); }
+    rawSheet.hideSheet();
+    rawSheet.getRange(1, 1, pivotData.length, pivotData[0].length).setValues(pivotData);
+
+    // Setup Profile Deep Dive sheet with Selector
+    diveSheet.clear();
+    if (diveSheet.getFilter()) { diveSheet.getFilter().remove(); }
+    diveSheet.getSlicers().forEach(s => s.remove());
+
+    // Selector UI
+    diveSheet.getRange("A1:D4").setBackground("#f3f3f3").setBorder(true, true, true, true, true, true);
+    diveSheet.getRange("A1").setValue("Partner & Solution Selector").setFontWeight("bold").setFontSize(12);
+    diveSheet.getRange("A2").setValue("Select Country:");
+    diveSheet.getRange("A3").setValue("Select Product:");
+
+    // Country Dropdown
+    const countries = [...new Set(pivotData.map(r => r[1]).filter(c => c && c !== "Country"))].sort();
+    countries.unshift("All");
+    const countryRule = SpreadsheetApp.newDataValidation().requireValueInList(countries).setAllowInvalid(false).build();
+    diveSheet.getRange("B2").setDataValidation(countryRule).setValue("All");
+
+    // Product Dropdown (Placeholder for now, but can be added later)
+    diveSheet.getRange("B3").setValue("All (Column Filters)");
+
+    // Filter Formula
+    const lastColLetter = columnToLetter(pivotData[0].length);
+    // Note: We include Row 1 for headers, but we will handle headers separately for better formatting.
+    // Actually, it's better to have headers static and filter only data.
+
+    // Static Headers for Deep Dive
+    formatDeepDivePivot(diveSheet, pivotData.length + 2, pivotData[0].length, rawSheetName, lastColLetter);
+
   } else { diveSheet.getRange(1,1).setValue("No profile details available."); }
 
   const defaultSheet = ss.getSheetByName("Sheet1"); if (defaultSheet) ss.deleteSheet(defaultSheet);
@@ -271,45 +303,47 @@ function formatDeckSheet(sheet, lastRow, lastCol) {
   } catch (e) {}
 }
 
-function formatDeepDivePivot(sheet, lastRow, lastCol) {
+function formatDeepDivePivot(sheet, lastRow, lastCol, rawSheetName, lastColLetter) {
   try {
-    if (sheet.getFilter()) { sheet.getFilter().remove(); }
-    sheet.getSlicers().forEach(s => s.remove()); // Remove existing slicers
-    sheet.setFrozenRows(0); sheet.setFrozenColumns(0); // Unfreeze to allow merging
+    const startRow = 6;
+    sheet.setFrozenRows(0); sheet.setFrozenColumns(0);
     const fixedHeaders = ["Profile ID", "Country", "Job Title", "Tier 1 Count"];
-    sheet.getRange(2, 1, 1, 4).setValues([fixedHeaders]);
-    sheet.getRange(1, 1, 1, 4).merge().setValue("Profile Details").setBackground("#666666").setFontColor("white").setFontWeight("bold").setHorizontalAlignment("center");
-    sheet.getRange(2, 1, 1, 4).setBackground("#d9d9d9").setFontWeight("bold");
+    sheet.getRange(startRow, 1, 1, 4).setValues([fixedHeaders]);
+    sheet.getRange(startRow - 1, 1, 1, 4).merge().setValue("Profile Details").setBackground("#666666").setFontColor("white").setFontWeight("bold").setHorizontalAlignment("center");
+    sheet.getRange(startRow, 1, 1, 4).setBackground("#d9d9d9").setFontWeight("bold");
     let currentCol = 5; 
     PRODUCT_SCHEMA.forEach(group => {
       const numProducts = group.products.length;
       if (numProducts > 0) {
-        const solRange = sheet.getRange(1, currentCol, 1, numProducts);
+        const solRange = sheet.getRange(startRow - 1, currentCol, 1, numProducts);
         solRange.merge().setValue(group.solution).setBackground(group.color).setFontWeight("bold").setHorizontalAlignment("center").setBorder(true, true, true, true, true, true);
-        const prodRange = sheet.getRange(2, currentCol, 1, numProducts);
+        const prodRange = sheet.getRange(startRow, currentCol, 1, numProducts);
         prodRange.setValues([group.products]).setBackground(group.color).setFontWeight("bold").setHorizontalAlignment("center").setWrapStrategy(SpreadsheetApp.WrapStrategy.WRAP).setVerticalAlignment("middle").setBorder(true, true, true, true, true, true);
         sheet.setColumnWidths(currentCol, numProducts, 100);
         currentCol += numProducts;
       }
     });
-    const dataRange = sheet.getRange(3, 1, lastRow - 2, lastCol);
+
+    // Apply FILTER formula
+    // Since we want to keep formatting, we might need to apply the formula to data rows only, but FILTER returns multiple rows.
+    // Better to just use the formula in A7 (first data row) and keep A6 as static headers.
+
+    sheet.getRange(startRow + 1, 1).setFormula(`=IFERROR(FILTER(${rawSheetName}!A2:${lastColLetter}1000, (${rawSheetName}!B2:B1000 = IF(B2="All", "*", B2))), "No data found")`);
+
+    // Formatting
+    const dataRange = sheet.getRange(startRow + 1, 1, 1000, lastCol); // Approximate range
     dataRange.setHorizontalAlignment("center");
-    dataRange.setBorder(true, true, true, true, true, true);
-    const scoreArea = sheet.getRange(3, 5, lastRow - 2, lastCol - 4);
+    // Note: Conditional formatting might not work perfectly with dynamic filter, but let's try.
+    const scoreArea = sheet.getRange(startRow + 1, 5, 1000, lastCol - 4);
     const rule1 = SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo("Tier 1").setBackground("#d9ead3").setRanges([scoreArea]).build();
     const rule2 = SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo("Tier 2").setBackground("#fff2cc").setRanges([scoreArea]).build();
     const rule3 = SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo("Tier 3").setBackground("#fce5cd").setRanges([scoreArea]).build();
     const rule4 = SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo("Tier 4").setBackground("#f4cccc").setRanges([scoreArea]).build();
     sheet.setConditionalFormatRules([rule1, rule2, rule3, rule4]);
-    sheet.setFrozenRows(2);
-    sheet.setFrozenColumns(4); 
-    sheet.getRange(2, 1, lastRow - 1, lastCol).createFilter();
 
-    // Add Country Slicer
-    const slicerRange = sheet.getRange(2, 1, lastRow - 1, lastCol);
-    const slicer = sheet.insertSlicer(slicerRange, 1, 5); // Place at Row 1, Col 5
-    slicer.setColumnIndex(2); // Column B is Country
-    slicer.setTitle("Select Country");
+    sheet.setFrozenRows(startRow);
+    sheet.setFrozenColumns(4); 
+
   } catch (e) { Logger.log("Matrix Formatting Error: " + e.toString()); }
 }
 
