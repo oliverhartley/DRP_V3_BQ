@@ -2,7 +2,7 @@
  * ****************************************
  * Google Apps Script - Individual Partner Decks
  * File: Partner_Individual_Decks.gs
- * Version: 10.8 (Hardcode Sheet Name)
+ * Version: 10.9 (Fix Remaining References)
  * ****************************************
  */
 
@@ -187,8 +187,9 @@ function updatePartnerSpreadsheet(partnerName, dashData, totalProfilesFromScoreD
     formatDeckSheet(sheet, dashData.length, dashData[0].length);
   }
 
-  let diveSheet = ss.getSheetByName(DEEPDIVE_SHEET_NAME);
-  if (!diveSheet) { diveSheet = ss.insertSheet(DEEPDIVE_SHEET_NAME); } else { diveSheet.clear(); }
+  let diveSheet = ss.getSheetByName("Profile Deep Dive");
+  if (!diveSheet) { diveSheet = ss.insertSheet("Profile Deep Dive"); }
+  else { diveSheet.clear(); }
   if (diveSheet.getFilter()) { diveSheet.getFilter().remove(); }
   if (pivotData.length > 0) {
     // Add hyperlinks and count Tier 1s
