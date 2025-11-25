@@ -2,7 +2,7 @@
  * ****************************************
  * Google Apps Script - Individual Partner Decks
  * File: Partner_Individual_Decks.gs
- * Version: 8.8 (Hardcoded Total for All)
+ * Version: 8.9 (Consistent Sheet Name)
  * ****************************************
  */
 
@@ -182,15 +182,14 @@ function updatePartnerSpreadsheet(partnerName, dashData, totalProfilesFromScoreD
     // Add formula for count in N1/N2
     sheet.getRange("N1").setValue("Profiles in Selection");
     sheet.getRange("N1").setBackground("#4285f4").setFontColor("white").setFontWeight("bold").setHorizontalAlignment("center").setBorder(true, true, true, true, true, true);
-    sheet.getRange("N2").setFormula(`=IF(M2="All", ${totalProfiles}, COUNTIF('Profile Deep Dive'!B2:B, M2))`);
+    sheet.getRange("N2").setFormula(`=IF(M2="All", ${totalProfiles}, COUNTIF('${DEEPDIVE_SHEET_NAME}'!B2:B, M2))`);
     sheet.getRange("N2").setBackground("white").setFontSize(12).setHorizontalAlignment("center").setVerticalAlignment("middle").setBorder(true, true, true, true, true, true);
 
     formatDeckSheet(sheet, dashData.length, dashData[0].length);
   }
 
   let diveSheet = ss.getSheetByName(DEEPDIVE_SHEET_NAME);
-  if (!diveSheet) { diveSheet = ss.insertSheet(DEEPDIVE_SHEET_NAME); }
-  diveSheet.clear(); 
+  if (!diveSheet) { diveSheet = ss.insertSheet(DEEPDIVE_SHEET_NAME); } else { diveSheet.clear(); }
   if (diveSheet.getFilter()) { diveSheet.getFilter().remove(); }
   if (pivotData.length > 0) {
     diveSheet.getRange(3, 1, pivotData.length, pivotData[0].length).setValues(pivotData);
@@ -219,10 +218,10 @@ function formatDeckSheet(sheet, lastRow, lastCol) {
       const product = sheet.getRange(i, 2).getValue();
       if (product) {
         const colLetter = columnToLetter(currentProductColIndex);
-        sheet.getRange(i, 3).setFormula(`=COUNTIFS('Profile Deep Dive'!$B:$B, IF($M$2="All", "*", $M$2), 'Profile Deep Dive'!$${colLetter}:$${colLetter}, "Tier 1")`);
-        sheet.getRange(i, 4).setFormula(`=COUNTIFS('Profile Deep Dive'!$B:$B, IF($M$2="All", "*", $M$2), 'Profile Deep Dive'!$${colLetter}:$${colLetter}, "Tier 2")`);
-        sheet.getRange(i, 5).setFormula(`=COUNTIFS('Profile Deep Dive'!$B:$B, IF($M$2="All", "*", $M$2), 'Profile Deep Dive'!$${colLetter}:$${colLetter}, "Tier 3")`);
-        sheet.getRange(i, 6).setFormula(`=COUNTIFS('Profile Deep Dive'!$B:$B, IF($M$2="All", "*", $M$2), 'Profile Deep Dive'!$${colLetter}:$${colLetter}, "Tier 4")`);
+        sheet.getRange(i, 3).setFormula(`=COUNTIFS('${DEEP_DIVE_SHEET_NAME}'!$B:$B, IF($M$2="All", "*", $M$2), '${DEEP_DIVE_SHEET_NAME}'!$${colLetter}:$${colLetter}, "Tier 1")`);
+        sheet.getRange(i, 4).setFormula(`=COUNTIFS('${DEEP_DIVE_SHEET_NAME}'!$B:$B, IF($M$2="All", "*", $M$2), '${DEEP_DIVE_SHEET_NAME}'!$${colLetter}:$${colLetter}, "Tier 2")`);
+        sheet.getRange(i, 5).setFormula(`=COUNTIFS('${DEEP_DIVE_SHEET_NAME}'!$B:$B, IF($M$2="All", "*", $M$2), '${DEEP_DIVE_SHEET_NAME}'!$${colLetter}:$${colLetter}, "Tier 3")`);
+        sheet.getRange(i, 6).setFormula(`=COUNTIFS('${DEEP_DIVE_SHEET_NAME}'!$B:$B, IF($M$2="All", "*", $M$2), '${DEEP_DIVE_SHEET_NAME}'!$${colLetter}:$${colLetter}, "Tier 4")`);
         currentProductColIndex++;
       }
     }
