@@ -2,7 +2,7 @@
  * ****************************************
  * Google Apps Script - Profile Deep Dive (SQL Source)
  * File: Profile_DeepDive.gs
- * Version: 2.5 (Explicit Left Joins)
+ * Version: 2.6 (Robust Domain Matching)
  * ****************************************
  */
 
@@ -57,7 +57,6 @@ function runDeepDiveQuerySource() {
       
       WHERE
         t1.profile_details.residing_country IN ('Argentina', 'Bolivia', 'Brazil', 'Chile', 'Colombia', 'Costa Rica', 'Cuba', 'Dominican Republic', 'Ecuador', 'El Salvador', 'Guatemala', 'Honduras', 'Mexico', 'Nicaragua', 'Panama', 'Paraguay', 'Peru', 'Uruguay', 'Venezuela')
-        AND scores.scored_product IS NOT NULL
     )
     SELECT * FROM RawProfileData
     ORDER BY partner_name, profile_id, scored_solution, score DESC
