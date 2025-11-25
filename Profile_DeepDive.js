@@ -2,7 +2,7 @@
  * ****************************************
  * Google Apps Script - Profile Deep Dive (SQL Source)
  * File: Profile_DeepDive.gs
- * Version: 2.0 (Fetch ALL Data for Batch Processing)
+ * Version: 2.1 (Robust Join Logic)
  * ****************************************
  */
 
@@ -49,10 +49,11 @@ function runDeepDiveQuerySource() {
         END AS scored_solution
 
       FROM
-        \`concord-prod.service_partnercoe.drp_partner_master\` AS t1,
-        UNNEST(t1.profile_details.score_details) AS scores
+        \`concord-prod.service_partnercoe.drp_partner_master\` AS t1
+      CROSS JOIN UNNEST(t1.partner_details.email_domain) AS bq_domain
+      UNNEST(t1.profile_details.score_details) AS scores
       INNER JOIN Spreadsheet_Data AS sheet
-        ON TRIM(LOWER(t1.partner_details.email_domain[OFFSET(0)])) = sheet.domain
+        ON REGEXP_REPLACE(TRIM(LOWER(bq_domain)), r'^@', '') = REGEXP_REPLACE(TRIM(LOWER(sheet.domain)), r'^@', '')
       
       WHERE
         t1.profile_details.residing_country IN ('Argentina', 'Bolivia', 'Brazil', 'Chile', 'Colombia', 'Costa Rica', 'Cuba', 'Dominican Republic', 'Ecuador', 'El Salvador', 'Guatemala', 'Honduras', 'Mexico', 'Nicaragua', 'Panama', 'Paraguay', 'Peru', 'Uruguay', 'Venezuela')
