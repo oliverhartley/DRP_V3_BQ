@@ -2,7 +2,7 @@
  * ****************************************
  * Google Apps Script - BigQuery Loader
  * File: LATAM_Partner_DB.gs
- * Version: V 5.6 - Fixed Column Mapping (Domain AI)
+ * Version: V 5.7 - Simplified Join & Robust Booleans
  * ****************************************
  */
 
@@ -33,10 +33,9 @@ function getSpreadsheetDataAsSqlStruct() {
     const row = values[i];
     if (textStyles[i][0].isStrikethrough()) continue; 
     let domain = String(row[COL_MAP.DOMAIN]).toLowerCase().trim().replace(/[\x00-\x1F\x7F-\x9F\u200B]/g, "");
-    if (domain && !domain.startsWith('@')) domain = '@' + domain;
-    if (domain && domain.includes('@') && !domain.includes('#n/a')) {
+    if (domain && !domain.includes('#n/a')) {
       const escapedDomain = domain.replace(/'/g, "\\'"); // Escape single quotes for SQL
-      const isTrue = (val) => val === true;
+      const isTrue = (val) => val === true || String(val).toUpperCase() === 'TRUE';
       let sqlLine = `STRUCT('${escapedDomain}' AS domain, ${isTrue(row[COL_MAP.GSI])} AS is_gsi, ${isTrue(row[COL_MAP.BRAZIL])} AS is_brazil, ${isTrue(row[COL_MAP.MCO])} AS is_mco, ${isTrue(row[COL_MAP.MEXICO])} AS is_mexico, ${isTrue(row[COL_MAP.PS])} AS is_ps, ${isTrue(row[COL_MAP.AI_ML])} AS is_ai_ml, ${isTrue(row[COL_MAP.GWS])} AS is_gws, ${isTrue(row[COL_MAP.SECURITY])} AS is_security, ${isTrue(row[COL_MAP.DB])} AS is_db, ${isTrue(row[COL_MAP.ANALYTICS])} AS is_analytics, ${isTrue(row[COL_MAP.INFRA])} AS is_infra, ${isTrue(row[COL_MAP.APP_MOD])} AS is_app_mod)`;
       structList.push(sqlLine);
     }
