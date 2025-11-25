@@ -2,7 +2,7 @@
  * ****************************************
  * Google Apps Script - Individual Partner Decks
  * File: Partner_Individual_Decks.gs
- * Version: 9.6 (Selector with FILTER)
+ * Version: 9.7 (Fix Filter & Hyperlinks)
  * ****************************************
  */
 
@@ -328,11 +328,12 @@ function formatDeepDivePivot(sheet, lastRow, lastCol, rawSheetName, lastColLette
     // Since we want to keep formatting, we might need to apply the formula to data rows only, but FILTER returns multiple rows.
     // Better to just use the formula in A7 (first data row) and keep A6 as static headers.
 
-    sheet.getRange(startRow + 1, 1).setFormula(`=IFERROR(FILTER(${rawSheetName}!A2:${lastColLetter}1000, (${rawSheetName}!B2:B1000 = IF(B2="All", "*", B2))), "No data found")`);
+    sheet.getRange(startRow + 1, 1).setFormula(`=IFERROR(FILTER(${rawSheetName}!A2:${lastColLetter}1000, IF(B2="All", ROW(${rawSheetName}!B2:B1000)>0, ${rawSheetName}!B2:B1000 = B2)), "No data found")`);
 
     // Formatting
     const dataRange = sheet.getRange(startRow + 1, 1, 1000, lastCol); // Approximate range
     dataRange.setHorizontalAlignment("center");
+    sheet.getRange(startRow + 1, 1, 1000, 1).setFontColor("#1155cc").setFontLine("underline"); // Restore hyperlink formatting
     // Note: Conditional formatting might not work perfectly with dynamic filter, but let's try.
     const scoreArea = sheet.getRange(startRow + 1, 5, 1000, lastCol - 4);
     const rule1 = SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo("Tier 1").setBackground("#d9ead3").setRanges([scoreArea]).build();
