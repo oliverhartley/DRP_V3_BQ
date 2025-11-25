@@ -2,7 +2,7 @@
  * ****************************************
  * Google Apps Script - Individual Partner Decks
  * File: Partner_Individual_Decks.gs
- * Version: 9.8 (Product Selector)
+ * Version: 9.9 (Rollback to Country Selector)
  * ****************************************
  */
 
@@ -234,11 +234,8 @@ function updatePartnerSpreadsheet(partnerName, dashData, totalProfilesFromScoreD
     const countryRule = SpreadsheetApp.newDataValidation().requireValueInList(countries).setAllowInvalid(false).build();
     diveSheet.getRange("B2").setDataValidation(countryRule).setValue("All");
 
-    // Product Dropdown
-    const productNames = PRODUCT_SCHEMA.flatMap(g => g.products);
-    productNames.unshift("All (Column Filters)");
-    const productRule = SpreadsheetApp.newDataValidation().requireValueInList(productNames).setAllowInvalid(false).build();
-    diveSheet.getRange("B3").setDataValidation(productRule).setValue("All (Column Filters)");
+    // Product Dropdown (Placeholder for now, but can be added later)
+    diveSheet.getRange("B3").setValue("All (Column Filters)");
 
     // Filter Formula
     const lastColLetter = columnToLetter(pivotData[0].length);
@@ -331,7 +328,7 @@ function formatDeepDivePivot(sheet, lastRow, lastCol, rawSheetName, lastColLette
     // Since we want to keep formatting, we might need to apply the formula to data rows only, but FILTER returns multiple rows.
     // Better to just use the formula in A7 (first data row) and keep A6 as static headers.
 
-    sheet.getRange(startRow + 1, 1).setFormula(`=IFERROR(FILTER(${rawSheetName}!A2:${lastColLetter}1000, IF(B2="All", ROW(${rawSheetName}!B2:B1000)>0, ${rawSheetName}!B2:B1000 = B2) * IF(B3="All (Column Filters)", ROW(${rawSheetName}!A2:A1000)>0, INDEX(${rawSheetName}!A2:${lastColLetter}1000, 0, MATCH(B3, ${rawSheetName}!A1:${lastColLetter}1, 0)) <> "-")), "No data found")`);
+    sheet.getRange(startRow + 1, 1).setFormula(`=IFERROR(FILTER(${rawSheetName}!A2:${lastColLetter}1000, IF(B2="All", ROW(${rawSheetName}!B2:B1000)>0, ${rawSheetName}!B2:B1000 = B2)), "No data found")`);
 
     // Formatting
     const dataRange = sheet.getRange(startRow + 1, 1, 1000, lastCol); // Approximate range
