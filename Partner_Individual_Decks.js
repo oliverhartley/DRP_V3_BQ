@@ -2,7 +2,7 @@
  * ****************************************
  * Google Apps Script - Individual Partner Decks
  * File: Partner_Individual_Decks.gs
- * Version: 9.4 (Fix Frozen Columns)
+ * Version: 9.5 (Country Slicer)
  * ****************************************
  */
 
@@ -274,6 +274,7 @@ function formatDeckSheet(sheet, lastRow, lastCol) {
 function formatDeepDivePivot(sheet, lastRow, lastCol) {
   try {
     if (sheet.getFilter()) { sheet.getFilter().remove(); }
+    sheet.getSlicers().forEach(s => s.remove()); // Remove existing slicers
     sheet.setFrozenRows(0); sheet.setFrozenColumns(0); // Unfreeze to allow merging
     const fixedHeaders = ["Profile ID", "Country", "Job Title", "Tier 1 Count"];
     sheet.getRange(2, 1, 1, 4).setValues([fixedHeaders]);
@@ -303,6 +304,12 @@ function formatDeepDivePivot(sheet, lastRow, lastCol) {
     sheet.setFrozenRows(2);
     sheet.setFrozenColumns(4); 
     sheet.getRange(2, 1, lastRow - 1, lastCol).createFilter();
+
+    // Add Country Slicer
+    const slicerRange = sheet.getRange(2, 1, lastRow - 1, lastCol);
+    const slicer = sheet.insertSlicer(slicerRange, 1, 5); // Place at Row 1, Col 5
+    slicer.setColumnIndex(2); // Column B is Country
+    slicer.setTitle("Select Country");
   } catch (e) { Logger.log("Matrix Formatting Error: " + e.toString()); }
 }
 
