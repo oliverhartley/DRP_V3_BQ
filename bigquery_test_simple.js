@@ -140,6 +140,7 @@ function testAccentureProfileCount() {
     FROM \`concord-prod.service_partnercoe.drp_partner_master\` AS t1,
     UNNEST(t1.partner_details.email_domain) AS bq_domain
     WHERE REGEXP_REPLACE(TRIM(LOWER(bq_domain)), r'^@', '') = 'accenture.com'
+    AND t1.profile_details.residing_country IN ('Argentina', 'Bolivia', 'Brazil', 'Chile', 'Colombia', 'Costa Rica', 'Cuba', 'Dominican Republic', 'Ecuador', 'El Salvador', 'Guatemala', 'Honduras', 'Mexico', 'Nicaragua', 'Panama', 'Paraguay', 'Peru', 'Uruguay', 'Venezuela')
   `;
   try {
     const request = { query: SQL_QUERY, useLegacySql: false };
