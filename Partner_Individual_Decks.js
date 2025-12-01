@@ -2,7 +2,7 @@
  * ****************************************
  * Google Apps Script - Individual Partner Decks
  * File: Partner_Individual_Decks.gs
- * Version: 11.6 (Robust Matching)
+ * Version: 11.7 (Add Debug Logging)
  * ****************************************
  */
 
@@ -93,6 +93,7 @@ function getPartnersByFlag(colIndex, targetValue) {
 
     if (isMatch) {
       const partnerName = data[i][1]; // Column B
+      Logger.log(`Match found: ${partnerName} (Col ${colIndex} value: ${cellValue})`);
       matches.push(partnerName);
     }
   }
