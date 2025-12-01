@@ -2,7 +2,7 @@
  * ****************************************
  * Google Apps Script - Individual Partner Decks
  * File: Partner_Individual_Decks.gs
- * Version: 11.7 (Add Debug Logging)
+ * Version: 11.8 (Corrected Indices V2)
  * ****************************************
  */
 
@@ -13,11 +13,11 @@ const SOURCE_DEEPDIVE_SHEET = "TEST_DeepDive_Data";
 
 // DB Column Indices
 const COL_INDEX_MANAGED = 5; 
-const COL_INDEX_GSI = 7;
-const COL_INDEX_BRAZIL = 8;
-const COL_INDEX_MCO = 9;
-const COL_INDEX_MEXICO = 10;
-const COL_INDEX_PS = 11;
+const COL_INDEX_GSI = 6;
+const COL_INDEX_BRAZIL = 7;
+const COL_INDEX_MCO = 8;
+const COL_INDEX_MEXICO = 9;
+const COL_INDEX_PS = 10;
 
 const PRODUCT_SCHEMA = [
   { solution: 'Infrastructure Modernization', color: '#fce5cd', products: ['Google Compute Engine', 'Google Cloud Networking', 'SAP on Google Cloud', 'Google Cloud VMware Engine', 'Google Distributed Cloud'] },
