@@ -17,6 +17,7 @@ function onOpen() {
       
       .addSubMenu(ui.createMenu('📄 Generate Decks')
           .addItem('⭐ MANAGED Partners', 'runManagedBatch')
+        .addItem('🌍 GSI Partners', 'runGSIBatch') // Added GSI
           .addItem('📂 UNMANAGED Partners', 'runUnManagedBatch')
           .addSeparator()
           .addItem('🇧🇷 Brazil', 'runBrazilBatch')
@@ -25,6 +26,7 @@ function onOpen() {
           
       .addSubMenu(ui.createMenu('🔒 Lock Decks')
           .addItem('⭐ Lock MANAGED', 'lockManagedBatch')
+        .addItem('🌍 Lock GSI', 'lockGSIBatch') // Added GSI
           .addItem('📂 Lock UNMANAGED', 'lockUnManagedBatch')
           .addSeparator()
           .addItem('🇧🇷 Lock Brazil', 'lockBrazilBatch')

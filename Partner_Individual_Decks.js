@@ -2,7 +2,7 @@
  * ****************************************
  * Google Apps Script - Individual Partner Decks
  * File: Partner_Individual_Decks.gs
- * Version: 11.3 (Fix Column Expansion)
+ * Version: 11.4 (Added GSI Batch)
  * ****************************************
  */
 
@@ -13,6 +13,7 @@ const SOURCE_DEEPDIVE_SHEET = "TEST_DeepDive_Data";
 
 // DB Column Indices
 const COL_INDEX_MANAGED = 5; 
+const COL_INDEX_GSI = 6; // Added GSI
 const COL_INDEX_BRAZIL = 7; 
 const COL_INDEX_MCO = 8;     
 const COL_INDEX_MEXICO = 9;  
@@ -30,7 +31,8 @@ const PRODUCT_SCHEMA = [
 // --- BATCH RUNNERS ---
 function runManagedBatch() { runBatchByColumnIndex(COL_INDEX_MANAGED, "MANAGED PARTNERS", true); }
 function runUnManagedBatch() { runBatchByColumnIndex(COL_INDEX_MANAGED, "UNMANAGED PARTNERS", false); }
-function runBrazilBatch() { runBatchByColumnIndex(COL_INDEX_BRAZIL, "Brazil", true); }
+function runGSIBatch() { runBatchByColumnIndex(COL_INDEX_GSI, "GSI PARTNERS", true); } // Added GSI
+function runBrazilBatch() { runBatchByColumnIndex(COL_INDEX_BRAZIL, "BRAZIL PARTNERS", true); }
 function runMCOBatch() { runBatchByColumnIndex(COL_INDEX_MCO, "MCO", true); }
 function runMexicoBatch() { runBatchByColumnIndex(COL_INDEX_MEXICO, "Mexico", true); }
 
