@@ -22,7 +22,8 @@ function onOpen() {
           .addSeparator()
           .addItem('🇧🇷 Brazil', 'runBrazilBatch')
           .addItem('🇲🇽 Mexico', 'runMexicoBatch')
-          .addItem('🌎 MCO', 'runMCOBatch'))
+        .addItem('🌎 MCO', 'runMCOBatch')
+        .addItem('💼 PS', 'runPSBatch'))
           
       .addSubMenu(ui.createMenu('🔒 Lock Decks')
           .addItem('⭐ Lock MANAGED', 'lockManagedBatch')
@@ -31,7 +32,8 @@ function onOpen() {
           .addSeparator()
           .addItem('🇧🇷 Lock Brazil', 'lockBrazilBatch')
           .addItem('🇲🇽 Lock Mexico', 'lockMexicoBatch')
-          .addItem('🌎 Lock MCO', 'lockMCOBatch'))
+        .addItem('🌎 Lock MCO', 'lockMCOBatch')
+        .addItem('💼 Lock PS', 'lockPSBatch'))
       
       .addSeparator()
       .addItem('🔗 Refresh Links (Manual)', 'runLinkUpdateManual') 

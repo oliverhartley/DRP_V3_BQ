@@ -2,7 +2,7 @@
  * ****************************************
  * Google Apps Script - Individual Partner Decks
  * File: Partner_Individual_Decks.gs
- * Version: 11.4 (Added GSI Batch)
+ * Version: 11.5 (Corrected Indices)
  * ****************************************
  */
 
@@ -13,10 +13,11 @@ const SOURCE_DEEPDIVE_SHEET = "TEST_DeepDive_Data";
 
 // DB Column Indices
 const COL_INDEX_MANAGED = 5; 
-const COL_INDEX_GSI = 6; // Added GSI
-const COL_INDEX_BRAZIL = 7; 
-const COL_INDEX_MCO = 8;     
-const COL_INDEX_MEXICO = 9;  
+const COL_INDEX_GSI = 7;
+const COL_INDEX_BRAZIL = 8;
+const COL_INDEX_MCO = 9;
+const COL_INDEX_MEXICO = 10;
+const COL_INDEX_PS = 11;
 
 const PRODUCT_SCHEMA = [
   { solution: 'Infrastructure Modernization', color: '#fce5cd', products: ['Google Compute Engine', 'Google Cloud Networking', 'SAP on Google Cloud', 'Google Cloud VMware Engine', 'Google Distributed Cloud'] },
@@ -31,10 +32,11 @@ const PRODUCT_SCHEMA = [
 // --- BATCH RUNNERS ---
 function runManagedBatch() { runBatchByColumnIndex(COL_INDEX_MANAGED, "MANAGED PARTNERS", true); }
 function runUnManagedBatch() { runBatchByColumnIndex(COL_INDEX_MANAGED, "UNMANAGED PARTNERS", false); }
-function runGSIBatch() { runBatchByColumnIndex(COL_INDEX_GSI, "GSI PARTNERS", true); } // Added GSI
+function runGSIBatch() { runBatchByColumnIndex(COL_INDEX_GSI, "GSI PARTNERS", true); }
 function runBrazilBatch() { runBatchByColumnIndex(COL_INDEX_BRAZIL, "BRAZIL PARTNERS", true); }
-function runMCOBatch() { runBatchByColumnIndex(COL_INDEX_MCO, "MCO", true); }
-function runMexicoBatch() { runBatchByColumnIndex(COL_INDEX_MEXICO, "Mexico", true); }
+function runMCOBatch() { runBatchByColumnIndex(COL_INDEX_MCO, "MCO PARTNERS", true); }
+function runMexicoBatch() { runBatchByColumnIndex(COL_INDEX_MEXICO, "MEXICO PARTNERS", true); }
+function runPSBatch() { runBatchByColumnIndex(COL_INDEX_PS, "PS PARTNERS", true); }
 
 // --- CONTROLLER ---
 function runBatchByColumnIndex(colIndex, batchName, targetValue = true) {
