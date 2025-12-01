@@ -2,7 +2,7 @@
  * ****************************************
  * Google Apps Script - Individual Partner Decks
  * File: Partner_Individual_Decks.gs
- * Version: 11.5 (Corrected Indices)
+ * Version: 11.6 (Robust Matching)
  * ****************************************
  */
 
@@ -86,8 +86,15 @@ function getPartnersByFlag(colIndex, targetValue) {
   const sheet = ss.getSheetByName(SHEET_NAME_DB); 
   const data = sheet.getDataRange().getValues();
   const matches = [];
-  for (let i = 1; i < data.length; i++) {
-    if (data[i][colIndex] === targetValue) matches.push(data[i][1]);
+  for (let i = 1; i < data.length; i++) { // Start from 1 to skip header row
+    const cellValue = data[i][colIndex];
+    // Robust match for both boolean and string "TRUE"/"FALSE"
+    const isMatch = (String(cellValue).toUpperCase() === String(targetValue).toUpperCase());
+
+    if (isMatch) {
+      const partnerName = data[i][1]; // Column B
+      matches.push(partnerName);
+    }
   }
   return matches;
 }
