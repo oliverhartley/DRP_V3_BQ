@@ -2,7 +2,7 @@
  * ****************************************
  * Google Apps Script - Link Caching System
  * File: Link_System.gs
- * Version: 2.0 (Batch-Optimized & Fast Search)
+ * Version: 2.1 (Added Clear Cache)
  * ****************************************
  */
 
@@ -70,4 +70,16 @@ function updateLinkCache() {
     sheet.getRange(2, 1, output.length, 2).setValues(output);
   }
   return output.length;
+}
+
+/**
+ * 3. CLEAR CACHE: Removes all cached links.
+ */
+function clearLinkCache() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(SHEET_NAME_LINKS);
+  if (sheet) {
+    sheet.clear();
+    sheet.getRange("A1:B1").setValues([["Partner Name", "Dashboard URL"]]);
+  }
 }
