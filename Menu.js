@@ -10,6 +10,8 @@ function onOpen() {
   const ui = SpreadsheetApp.getUi();
 
   ui.createMenu('🚀 Partner Engine')
+    .addItem('🔄 Full Data Update', 'runFullDataUpdate')
+    .addSeparator()
       .addItem('1️⃣ Update Partner DB', 'runBigQueryQuery')
       .addItem('2️⃣ Update Scoring Matrix', 'runPartnerScorePivot')
       .addItem('3️⃣ Update Profile Source', 'runDeepDiveQuerySource')
