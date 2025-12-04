@@ -15,6 +15,11 @@ function onOpen() {
       .addItem('1️⃣ Update Partner DB', 'runBigQueryQuery')
       .addItem('2️⃣ Update Scoring Matrix', 'runPartnerScorePivot')
       .addItem('3️⃣ Update Profile Source', 'runDeepDiveQuerySource')
+    .addItem('📊 Generate Q3 Report', 'runQ3Report')
+    .addItem('🐞 Debug Q3 Data', 'debugQ3Diagnostics')
+    .addItem('📅 Check Data Availability', 'checkDataAvailabilityForDates')
+    .addItem('📊 Calculate Performance Delta', 'calculatePerformanceDelta')
+    .addItem('🔄 Update Dashboard Cache', 'updateDashboardCache')
       .addSeparator()
       
       .addSubMenu(ui.createMenu('📄 Generate Decks')
