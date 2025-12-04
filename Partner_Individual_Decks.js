@@ -275,6 +275,10 @@ function updatePartnerSpreadsheet(partnerName, dashData, totalProfilesFromScoreD
   } else { diveSheet.getRange(1,1).setValue("No profile details available."); }
 
   const defaultSheet = ss.getSheetByName("Sheet1"); if (defaultSheet) ss.deleteSheet(defaultSheet);
+
+  // --- NEW: Auto-Insert Images ---
+  ensurePartnerImages(sheet);
+
   return { url: ss.getUrl(), status: actionStatus };
 }
 
@@ -388,4 +392,53 @@ function columnToLetter(column) {
     column = (column - temp - 1) / 26;
   }
   return letter;
+}
+
+function ensurePartnerImages(sheet) {
+  const images = [
+    { id: "1RrY--a7cZ9gYZKFZJa0v4ZIAT75aM0VH", row: 5, col: 9 },
+    { id: "1Gf9sghdhjs-tnszdSP00IXlWR52UBaQs", row: 15, col: 9 }
+  ];
+
+  try {
+    // Check existing images to avoid duplicates
+    const existingImages = sheet.getImages();
+    const occupiedCells = new Set();
+    existingImages.forEach(img => {
+      try {
+        const anchor = img.getAnchorCell();
+        occupiedCells.add(`${anchor.getRow()}_${anchor.getColumn()}`);
+      } catch (e) { }
+    });
+
+    const token = ScriptApp.getOAuthToken();
+
+    images.forEach(img => {
+      if (occupiedCells.has(`${img.row}_${img.col}`)) return;
+
+      try {
+        // Fetch resized thumbnail to avoid "Blob too large" error
+        const resizeUrl = `https://drive.google.com/thumbnail?id=${img.id}&sz=w1000`;
+        const response = UrlFetchApp.fetch(resizeUrl, {
+          headers: { 'Authorization': 'Bearer ' + token },
+          muteHttpExceptions: true
+        });
+
+        if (response.getResponseCode() === 200) {
+          sheet.insertImage(response.getBlob(), img.col, img.row);
+        } else {
+          // Fallback to direct Drive fetch
+          try {
+            sheet.insertImage(DriveApp.getFileById(img.id).getBlob(), img.col, img.row);
+          } catch (e) {
+            Logger.log(`Failed to insert image ${img.id}: ${e.toString()}`);
+          }
+        }
+      } catch (e) {
+        Logger.log(`Error processing image ${img.id}: ${e.toString()}`);
+      }
+    });
+  } catch (e) {
+    Logger.log(`Critical Error in ensurePartnerImages: ${e.toString()}`);
+  }
 }
