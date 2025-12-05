@@ -84,9 +84,99 @@ function sendPartnerSummaryEmail() {
   Logger.log(">>> PROCESS COMPLETE <<<");
 }
 
-// ... (getPartnerSheetData remains the same) ...
+function getPartnerSheetData(ssId) {
+  try {
+    const ss = SpreadsheetApp.openById(ssId);
 
-// ... (callGeminiWithFallback remains the same) ...
+    const tierSheet = ss.getSheetByName("Tier Dashboard");
+    const deepDiveSheet = ss.getSheetByName("Profile Deep Dive");
+
+    if (!tierSheet || !deepDiveSheet) {
+      Logger.log("ERROR: Missing required sheets.");
+      return null;
+    }
+
+    // Get all data as text (simplified for token limit, can be optimized)
+    const tierData = tierSheet.getDataRange().getValues().map(row => row.join(", ")).join("\n");
+
+    // For Deep Dive, we might want to limit rows if it's huge, but let's try grabbing it all first or the pivot table part
+    // The user mentioned "Profile Deep Dive" has a hidden raw data section at row 1000, but maybe we just want the visible part?
+    // Let's grab the visible part (top 100 rows maybe?) or the whole thing if small.
+    // Given the previous script, the visible part is the "Profile Details" table starting at row 6.
+    // Let's grab the first 200 rows to be safe.
+    const deepDiveData = deepDiveSheet.getRange(1, 1, Math.min(deepDiveSheet.getLastRow(), 200), deepDiveSheet.getLastColumn()).getValues().map(row => row.join(", ")).join("\n");
+
+    return {
+      tierDashboard: tierData,
+      profileDeepDive: deepDiveData
+    };
+  } catch (e) {
+    Logger.log(`Error reading sheets: ${e.toString()}`);
+    return null;
+  }
+}
+
+function callGeminiWithFallback(prompt) {
+  const models = [
+    { name: 'gemini-1.5-pro', version: 'v1beta' }, // Trying 1.5 Pro first as it's usually best for analysis
+    { name: 'gemini-1.5-flash', version: 'v1beta' },
+    { name: 'gemini-pro', version: 'v1' } // Fallback to older if needed, though 1.5 is standard now
+  ];
+
+  // User requested specific list:
+  // { name: 'gemini-3-pro-preview', version: 'v1beta' },
+  // { name: 'gemini-1.5-pro', version: 'v1' },
+  // { name: 'gemini-1.5-flash', version: 'v1' }
+
+  const userModels = [
+    { name: 'gemini-3-pro-preview', version: 'v1beta' }
+  ];
+
+  const apiKey = PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY');
+  if (!apiKey) {
+    Logger.log("ERROR: GEMINI_API_KEY not found in Script Properties.");
+    return null;
+  }
+
+  for (const model of userModels) {
+    Logger.log(`Attempting to call model: ${model.name} (${model.version})...`);
+    try {
+      const url = `https://generativelanguage.googleapis.com/${model.version}/models/${model.name}:generateContent?key=${apiKey}`;
+
+      const payload = {
+        contents: [{
+          parts: [{ text: prompt }]
+        }]
+      };
+
+      const options = {
+        method: 'post',
+        contentType: 'application/json',
+        payload: JSON.stringify(payload),
+        muteHttpExceptions: true
+      };
+
+      const response = UrlFetchApp.fetch(url, options);
+      const responseCode = response.getResponseCode();
+      const responseText = response.getContentText();
+
+      if (responseCode === 200) {
+        const json = JSON.parse(responseText);
+        if (json.candidates && json.candidates.length > 0 && json.candidates[0].content && json.candidates[0].content.parts) {
+          Logger.log(`SUCCESS: Model ${model.name} generated content.`);
+          return json.candidates[0].content.parts[0].text;
+        }
+      } else {
+        Logger.log(`FAILED: Model ${model.name} returned code ${responseCode}. Response: ${responseText}`);
+      }
+    } catch (e) {
+      Logger.log(`EXCEPTION: Model ${model.name} failed with error: ${e.toString()}`);
+    }
+  }
+
+  Logger.log("ALL MODELS FAILED. Please check API Key or Quota.");
+  return null;
+}
 
 function sendEmail(subject, htmlBody) {
   try {
