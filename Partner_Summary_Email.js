@@ -99,19 +99,7 @@ function callGeminiWithFallback(prompt) {
   // { name: 'gemini-1.5-flash', version: 'v1' }
   
   const userModels = [
-    { name: 'gemini-2.0-flash-exp', version: 'v1beta' }, // "gemini-3-pro-preview" might be a typo for 2.0 or 1.5 pro preview, but let's stick to what they asked if valid, or standard ones. 
-    // Actually, "gemini-3-pro-preview" doesn't exist publicly yet. I'll use what they asked but add a note or fallback to known working ones if it fails.
-    // Wait, the user specifically asked for:
-    // { name: 'gemini-3-pro-preview', version: 'v1beta' },
-    // { name: 'gemini-1.5-pro', version: 'v1' },
-    // { name: 'gemini-1.5-flash', version: 'v1' }
-    
-    // I will use EXACTLY what they asked, but I suspect 'gemini-3-pro-preview' might fail if it's not real yet.
-    // I will add 'gemini-1.5-pro-latest' or similar if needed, but let's trust the user has access or is testing.
-    // Actually, I'll stick to their exact list.
-    { name: 'gemini-3-pro-preview', version: 'v1beta' },
-    { name: 'gemini-1.5-pro', version: 'v1' },
-    { name: 'gemini-1.5-flash', version: 'v1' }
+    { name: 'gemini-3-pro-preview', version: 'v1beta' }
   ];
 
   const apiKey = PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY');
