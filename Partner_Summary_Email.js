@@ -3,26 +3,92 @@
  * Google Apps Script - Partner Summary Email
  * File: Partner_Summary_Email.gs
  * Description: Generates an executive summary using Gemini and sends it via email.
+ * Includes Batch Processing capabilities.
  * ****************************************
  */
 
-const TARGET_PARTNER_SS_ID = "12I1uGum5FnT2nxdFlBanTRC4vAdZuVx6u16sWIc9FSA";
-const EMAIL_RECIPIENT = "oliverhartley@google.com";
+// NOTE: Uses Global Constants from Config.gs
+// SOURCE_SS_ID, PARTNER_FOLDER_ID
 
-function sendPartnerSummaryEmail() {
-  Logger.log(">>> STARTING PARTNER SUMMARY EMAIL PROCESS <<<");
+function runBatchEmailSender() {
+  Logger.log(">>> STARTING BATCH EMAIL PROCESS <<<");
+
+  const ss = SpreadsheetApp.openById(SOURCE_SS_ID);
+  const sheet = ss.getSheetByName("Copy of Consolidate by Partner");
+  if (!sheet) {
+    Logger.log("ERROR: 'Copy of Consolidate by Partner' sheet not found in Source SS.");
+    return;
+  }
+
+  const data = sheet.getDataRange().getValues();
+  // Headers are likely row 1. Data starts row 2.
+
+  // Indices (0-based)
+  const COL_PARTNER_NAME = 0; // Column A
+  const COL_TO_EMAIL = 35;    // Column AJ
+  const COL_CC_EMAIL = 36;    // Column AK
+
+  let processedCount = 0;
+
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    const partnerName = row[COL_PARTNER_NAME];
+    const toEmails = row[COL_TO_EMAIL];
+    const ccEmails = row[COL_CC_EMAIL];
+
+    // Trigger: Column AK (CC) is NOT empty
+    // User Request: "where in the column AK in not Empty"
+    if (ccEmails && String(ccEmails).trim() !== "") {
+      Logger.log(`[Row ${i + 1}] Processing Partner: ${partnerName}`);
+
+      const fileId = findPartnerFileId(partnerName);
+      if (fileId) {
+        Logger.log(`  File Found: ${fileId}`);
+        try {
+          generateAndSendPartnerSummary(partnerName, fileId, toEmails, ccEmails);
+          processedCount++;
+          // Respect Gemini quotas (avoid hitting rate limits too hard)
+          Utilities.sleep(5000);
+        } catch (e) {
+          Logger.log(`  ERROR processing ${partnerName}: ${e.toString()}`);
+        }
+      } else {
+        Logger.log(`  WARNING: Partner file not found for ${partnerName}`);
+      }
+    }
+  }
+  Logger.log(`>>> BATCH PROCESS COMPLETE. Processed ${processedCount} partners. <<<`);
+}
+
+function findPartnerFileId(partnerName) {
+  try {
+    const folder = DriveApp.getFolderById(PARTNER_FOLDER_ID);
+    // Naming convention: "{Partner Name} - Partner Dashboard"
+    const fileName = `${partnerName} - Partner Dashboard`;
+    const files = folder.getFilesByName(fileName);
+    if (files.hasNext()) {
+      return files.next().getId();
+    }
+  } catch (e) {
+    Logger.log(`Error searching for file: ${e.toString()}`);
+  }
+  return null;
+}
+
+function generateAndSendPartnerSummary(partnerName, ssId, toEmails, ccEmails) {
+  Logger.log(`  Generating summary for ${partnerName}...`);
 
   // 1. Get Data from Sheets
-  const sheetData = getPartnerSheetData(TARGET_PARTNER_SS_ID);
+  const sheetData = getPartnerSheetData(ssId);
   if (!sheetData) {
-    Logger.log("ERROR: Failed to retrieve sheet data.");
+    Logger.log("  ERROR: Failed to retrieve sheet data.");
     return;
   }
   
   // 2. Prepare Prompt for Gemini
   const prompt = `
     You are an expert Data Analyst and Executive Assistant.
-    Please analyze the following data from a Partner Dashboard and a Profile Deep Dive.
+    Please analyze the following data from a Partner Dashboard and a Profile Deep Dive for partner: "${partnerName}".
     
     Data from "Tier Dashboard":
     ${sheetData.tierDashboard}
@@ -52,15 +118,15 @@ function sendPartnerSummaryEmail() {
   // 3. Call Gemini
   const summaryHtml = callGeminiWithFallback(prompt);
   if (!summaryHtml) {
-    Logger.log("ERROR: Failed to generate summary from Gemini.");
+    Logger.log("  ERROR: Failed to generate summary from Gemini.");
     return;
   }
 
   // 4. Send Email
-  const subject = "[GCP DRP Readiness] Partner Executive Summary";
-  const fileUrl = `https://docs.google.com/spreadsheets/d/${TARGET_PARTNER_SS_ID}/edit`;
+  const subject = `[GCP DRP Readiness] Partner Executive Summary: ${partnerName}`;
+  const fileUrl = `https://docs.google.com/spreadsheets/d/${ssId}/edit`;
   
-  // Clean up any potential markdown code blocks if Gemini wraps HTML in ```html ... ```
+  // Clean up any potential markdown code blocks
   let cleanHtml = summaryHtml.replace(/```html/g, "").replace(/```/g, "").trim();
 
   const emailBody = `
@@ -79,9 +145,7 @@ function sendPartnerSummaryEmail() {
     </div>
   `;
 
-  sendEmail(subject, emailBody);
-
-  Logger.log(">>> PROCESS COMPLETE <<<");
+  sendEmail(subject, emailBody, toEmails, ccEmails);
 }
 
 function getPartnerSheetData(ssId) {
@@ -99,11 +163,7 @@ function getPartnerSheetData(ssId) {
     // Get all data as text (simplified for token limit, can be optimized)
     const tierData = tierSheet.getDataRange().getValues().map(row => row.join(", ")).join("\n");
 
-    // For Deep Dive, we might want to limit rows if it's huge, but let's try grabbing it all first or the pivot table part
-    // The user mentioned "Profile Deep Dive" has a hidden raw data section at row 1000, but maybe we just want the visible part?
-    // Let's grab the visible part (top 100 rows maybe?) or the whole thing if small.
-    // Given the previous script, the visible part is the "Profile Details" table starting at row 6.
-    // Let's grab the first 200 rows to be safe.
+    // For Deep Dive, limit to reasonable amount
     const deepDiveData = deepDiveSheet.getRange(1, 1, Math.min(deepDiveSheet.getLastRow(), 200), deepDiveSheet.getLastColumn()).getValues().map(row => row.join(", ")).join("\n");
 
     return {
@@ -117,17 +177,6 @@ function getPartnerSheetData(ssId) {
 }
 
 function callGeminiWithFallback(prompt) {
-  const models = [
-    { name: 'gemini-1.5-pro', version: 'v1beta' }, // Trying 1.5 Pro first as it's usually best for analysis
-    { name: 'gemini-1.5-flash', version: 'v1beta' },
-    { name: 'gemini-pro', version: 'v1' } // Fallback to older if needed, though 1.5 is standard now
-  ];
-
-  // User requested specific list:
-  // { name: 'gemini-3-pro-preview', version: 'v1beta' },
-  // { name: 'gemini-1.5-pro', version: 'v1' },
-  // { name: 'gemini-1.5-flash', version: 'v1' }
-
   const userModels = [
     { name: 'gemini-3-pro-preview', version: 'v1beta' }
   ];
@@ -139,7 +188,7 @@ function callGeminiWithFallback(prompt) {
   }
 
   for (const model of userModels) {
-    Logger.log(`Attempting to call model: ${model.name} (${model.version})...`);
+    // Logger.log(`Attempting to call model: ${model.name}...`); // Reduced logging for batch
     try {
       const url = `https://generativelanguage.googleapis.com/${model.version}/models/${model.name}:generateContent?key=${apiKey}`;
 
@@ -163,7 +212,6 @@ function callGeminiWithFallback(prompt) {
       if (responseCode === 200) {
         const json = JSON.parse(responseText);
         if (json.candidates && json.candidates.length > 0 && json.candidates[0].content && json.candidates[0].content.parts) {
-          Logger.log(`SUCCESS: Model ${model.name} generated content.`);
           return json.candidates[0].content.parts[0].text;
         }
       } else {
@@ -173,20 +221,37 @@ function callGeminiWithFallback(prompt) {
       Logger.log(`EXCEPTION: Model ${model.name} failed with error: ${e.toString()}`);
     }
   }
-
-  Logger.log("ALL MODELS FAILED. Please check API Key or Quota.");
   return null;
 }
 
-function sendEmail(subject, htmlBody) {
+function sendEmail(subject, htmlBody, to, cc) {
   try {
-    MailApp.sendEmail({
-      to: EMAIL_RECIPIENT,
+    const emailOptions = {
+      to: to,
       subject: subject,
       htmlBody: htmlBody
-    });
-    Logger.log(`Email sent to ${EMAIL_RECIPIENT}`);
+    };
+
+    if (cc && String(cc).trim() !== "") {
+      emailOptions.cc = cc;
+    }
+
+    if (!to || String(to).trim() === "") {
+      Logger.log("  WARNING: 'TO' email is empty. Attempting to send using CC only if possible, or aborting.");
+      // MailApp might fail if 'to' is empty. Let's try to just log error if TO is missing.
+      if (emailOptions.cc) {
+        Logger.log("  Using CC address as TO since TO is empty (Not recommended but trying).");
+        emailOptions.to = emailOptions.cc;
+        delete emailOptions.cc;
+      } else {
+        Logger.log("  ERROR: No recipients defined. Skipping email.");
+        return;
+      }
+    }
+
+    MailApp.sendEmail(emailOptions);
+    Logger.log(`  Email sent to: ${emailOptions.to} (CC: ${cc || 'None'})`);
   } catch (e) {
-    Logger.log(`Error sending email: ${e.toString()}`);
+    Logger.log(`  Error sending email: ${e.toString()}`);
   }
 }
