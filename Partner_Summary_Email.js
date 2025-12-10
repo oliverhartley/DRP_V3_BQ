@@ -24,7 +24,7 @@ function runBatchEmailSender() {
   // Headers are likely row 1. Data starts row 2.
 
   // Indices (0-based)
-  const COL_PARTNER_NAME = 0; // Column A
+  const COL_PARTNER_NAME = 33; // Column AH
   const COL_TO_EMAIL = 35;    // Column AJ
   const COL_CC_EMAIL = 36;    // Column AK
 
