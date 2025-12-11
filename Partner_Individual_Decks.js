@@ -18,6 +18,8 @@ const COL_INDEX_BRAZIL = 7;
 const COL_INDEX_MCO = 8;
 const COL_INDEX_MEXICO = 9;
 const COL_INDEX_PS = 10;
+const COL_INDEX_DECK_STATUS = 19; // Column T
+const MAX_EXECUTION_TIME_MS = 1500000; // 25 minutes
 
 const PRODUCT_SCHEMA = [
   { solution: 'Infrastructure Modernization', color: '#fce5cd', products: ['Google Compute Engine', 'Google Cloud Networking', 'SAP on Google Cloud', 'Google Cloud VMware Engine', 'Google Distributed Cloud'] },
@@ -40,7 +42,9 @@ function runPSBatch() { runBatchByColumnIndex(COL_INDEX_PS, "PS PARTNERS", true)
 
 // --- CONTROLLER ---
 function runBatchByColumnIndex(colIndex, batchName, targetValue = true) {
-  Logger.log(`>>> STARTING BATCH: ${batchName} <<<`);
+  const startTime = new Date().getTime();
+  const currentBatchId = getBatchId();
+  Logger.log(`>>> STARTING BATCH: ${batchName} [Batch ID: ${currentBatchId}] <<<`);
   
   const partnerList = getPartnersByFlag(colIndex, targetValue);
   if (partnerList.length === 0) return;
@@ -48,12 +52,34 @@ function runBatchByColumnIndex(colIndex, batchName, targetValue = true) {
   Logger.log(`Found ${partnerList.length} partners.`);
   const newLinks = [];
 
+  // Need to open sheet to write status
+  const ss = SpreadsheetApp.openById(DESTINATION_SS_ID);
+  const dbSheet = ss.getSheetByName(SHEET_NAME_DB); // Ensure this sheet exists and matches Config
+
   for (let i = 0; i < partnerList.length; i++) {
-    const pName = partnerList[i];
+    if (isTimeLimitApproaching(startTime)) {
+      Logger.log("WARNING: Time limit approaching. Stopping to allow safe resume on next trigger.");
+      break;
+    }
+
+    const pData = partnerList[i]; // Now an object { name, rowIndex, status }
+    const pName = pData.name;
+    const pRowIndex = pData.rowIndex;
+    const pStatus = pData.status;
+
+    if (pStatus === currentBatchId) {
+      Logger.log(`[${i + 1}/${partnerList.length}] Skipping ${pName} (Already processed).`);
+      continue;
+    }
+
     Logger.log(`[${i + 1}/${partnerList.length}] Processing: ${pName}...`);
     try {
       const result = generateDeckForPartner(pName);
-      if (result && result.url) newLinks.push({ name: pName, url: result.url });
+      if (result && result.url) {
+        newLinks.push({ name: pName, url: result.url });
+        // Update Status
+        dbSheet.getRange(pRowIndex, COL_INDEX_DECK_STATUS + 1).setValue(currentBatchId);
+      }
       Utilities.sleep(1000); 
     } catch (e) {
       Logger.log(`ERROR processing ${pName}: ${e.toString()}`);
@@ -63,6 +89,19 @@ function runBatchByColumnIndex(colIndex, batchName, targetValue = true) {
   // *** AUTO-SAVE TO CACHE ***
   saveBatchLinks(newLinks); 
   Logger.log(`>>> BATCH COMPLETE: ${batchName} <<<`);
+}
+
+function getBatchId() {
+  const now = new Date();
+  const shiftedDate = new Date(now.getTime() - 24 * 60 * 60 * 1000); // Shift for Tue start
+  const year = shiftedDate.getFullYear();
+  const onejan = new Date(year, 0, 1);
+  const week = Math.ceil((((shiftedDate.getTime() - onejan.getTime()) / 86400000) + onejan.getDay() + 1) / 7);
+  return `DECK_${year}_${week}`;
+}
+
+function isTimeLimitApproaching(startTime) {
+  return (new Date().getTime() - startTime) > MAX_EXECUTION_TIME_MS;
 }
 
 // --- GENERATOR ---
@@ -93,8 +132,9 @@ function getPartnersByFlag(colIndex, targetValue) {
 
     if (isMatch) {
       const partnerName = data[i][1]; // Column B
+      const status = data[i][COL_INDEX_DECK_STATUS];
       Logger.log(`Match found: ${partnerName} (Col ${colIndex} value: ${cellValue})`);
-      matches.push(partnerName);
+      matches.push({ name: partnerName, rowIndex: i + 1, status: status });
     }
   }
   return matches;
