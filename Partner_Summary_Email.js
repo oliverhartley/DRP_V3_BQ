@@ -15,7 +15,7 @@ const COL_PARTNER_NAME = 33; // Column AH
 const COL_TO_EMAIL = 35;     // Column AJ
 const COL_CC_EMAIL = 36;     // Column AK
 const COL_STATUS = 37;       // Column AL (New: For Status Tracking)
-const MAX_EXECUTION_TIME_MS = 250000; // ~4.1 minutes (Safe buffer for 6 min limit)
+const MAX_EXECUTION_TIME_MS = 1200000; // 20 minutes (Workspace Account Limit support)
 
 function runBatchEmailSender() {
   const startTime = new Date().getTime();
