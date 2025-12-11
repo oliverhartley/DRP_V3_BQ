@@ -14,7 +14,7 @@ const DOMAIN_START_ROW = 3;
 const COL_MAP = {
   GSI: 7, BRAZIL: 8, MCO: 9, MEXICO: 10, PS: 11, 
   AI_ML: 13, GWS: 14, SECURITY: 15, DB: 16, ANALYTICS: 17, INFRA: 18, APP_MOD: 19, 
-  DOMAIN: 34
+  PARTNER_NAME: 33, DOMAIN: 34
 };
 
 // ... [getSpreadsheetDataAsSqlStruct function remains EXACTLY THE SAME as V4.1] ...
@@ -33,10 +33,13 @@ function getSpreadsheetDataAsSqlStruct() {
     const row = values[i];
     if (textStyles[i][0].isStrikethrough()) continue; 
     let domain = String(row[COL_MAP.DOMAIN]).toLowerCase().trim().replace(/[\x00-\x1F\x7F-\x9F\u200B]/g, "");
+    let partnerName = String(row[COL_MAP.PARTNER_NAME] || "").trim().replace(/[\x00-\x1F\x7F-\x9F\u200B]/g, "");
+
     if (domain && !domain.includes('#n/a')) {
       const escapedDomain = domain.replace(/'/g, "\\'"); // Escape single quotes for SQL
+      const escapedName = partnerName.replace(/'/g, "\\'"); // Escape single quotes for SQL
       const isTrue = (val) => val === true || String(val).toUpperCase() === 'TRUE';
-      let sqlLine = `STRUCT('${escapedDomain}' AS domain, ${isTrue(row[COL_MAP.GSI])} AS is_gsi, ${isTrue(row[COL_MAP.BRAZIL])} AS is_brazil, ${isTrue(row[COL_MAP.MCO])} AS is_mco, ${isTrue(row[COL_MAP.MEXICO])} AS is_mexico, ${isTrue(row[COL_MAP.PS])} AS is_ps, ${isTrue(row[COL_MAP.AI_ML])} AS is_ai_ml, ${isTrue(row[COL_MAP.GWS])} AS is_gws, ${isTrue(row[COL_MAP.SECURITY])} AS is_security, ${isTrue(row[COL_MAP.DB])} AS is_db, ${isTrue(row[COL_MAP.ANALYTICS])} AS is_analytics, ${isTrue(row[COL_MAP.INFRA])} AS is_infra, ${isTrue(row[COL_MAP.APP_MOD])} AS is_app_mod)`;
+      let sqlLine = `STRUCT('${escapedDomain}' AS domain, '${escapedName}' AS partner_name, ${isTrue(row[COL_MAP.GSI])} AS is_gsi, ${isTrue(row[COL_MAP.BRAZIL])} AS is_brazil, ${isTrue(row[COL_MAP.MCO])} AS is_mco, ${isTrue(row[COL_MAP.MEXICO])} AS is_mexico, ${isTrue(row[COL_MAP.PS])} AS is_ps, ${isTrue(row[COL_MAP.AI_ML])} AS is_ai_ml, ${isTrue(row[COL_MAP.GWS])} AS is_gws, ${isTrue(row[COL_MAP.SECURITY])} AS is_security, ${isTrue(row[COL_MAP.DB])} AS is_db, ${isTrue(row[COL_MAP.ANALYTICS])} AS is_analytics, ${isTrue(row[COL_MAP.INFRA])} AS is_infra, ${isTrue(row[COL_MAP.APP_MOD])} AS is_app_mod)`;
       structList.push(sqlLine);
     }
   }
@@ -76,6 +79,8 @@ function runBigQueryQuery() {
               bq.residing_country,
               sheet.domain IS NOT NULL as is_matched, 
               sheet.domain as sheet_domain, 
+              -- Keep Sheet Name for Fallback
+              sheet.partner_name as sheet_partner_name,
               IFNULL(sheet.is_gsi, FALSE) as is_gsi,
               IFNULL(sheet.is_brazil, FALSE) as is_brazil,
               IFNULL(sheet.is_mco, FALSE) as is_mco,
@@ -91,13 +96,16 @@ function runBigQueryQuery() {
           FROM Spreadsheet_Data AS sheet
           LEFT JOIN BQ_Flattened AS bq
             ON REGEXP_REPLACE(TRIM(LOWER(bq.bq_domain_flat)), r'^@', '') = REGEXP_REPLACE(TRIM(LOWER(sheet.domain)), r'^@', '')
+            -- FALLBACK MATCH: If Domain fails, try Exact Name Match
+            OR TRIM(LOWER(bq.partner_name)) = TRIM(LOWER(sheet.partner_name))
       ),
       
       -- 3. Get Unique Profiles
       UniqueProfiles AS (
           SELECT DISTINCT
-              IFNULL(partner_id, CONCAT('MISSING_BQ_', sheet_domain)) as partner_id, 
-              IFNULL(partner_name, sheet_domain) as partner_name, 
+              -- Use BQ ID if matched, otherwise generate a placeholder using Sheet Name
+              IFNULL(partner_id, CONCAT('MISSING_BQ_', REGEXP_REPLACE(sheet_partner_name, ' ', '_'))) as partner_id, 
+              IFNULL(partner_name, sheet_partner_name) as partner_name, 
               profile_id,
               residing_country,
               sheet_domain
@@ -107,7 +115,7 @@ function runBigQueryQuery() {
       -- 4. Aggregate Partner Flags
       PartnerFlags AS (
           SELECT
-              IFNULL(partner_id, CONCAT('MISSING_BQ_', sheet_domain)) as partner_id,
+              IFNULL(partner_id, CONCAT('MISSING_BQ_', REGEXP_REPLACE(sheet_partner_name, ' ', '_'))) as partner_id,
               TRUE as is_matched, 
               LOGICAL_OR(is_gsi) as is_gsi,
               LOGICAL_OR(is_brazil) as is_brazil,

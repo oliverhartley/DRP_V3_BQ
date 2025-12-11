@@ -1,30 +1,37 @@
-function debugAccentureData() {
-  const ss = SpreadsheetApp.openById(DESTINATION_SS_ID);
-  const dbSheet = ss.getSheetByName("LATAM_Partner_DB");
-  const scoreSheet = ss.getSheetByName("LATAM_Partner_Score_DRP");
+function debugOrionInBQ() {
+  const keyword = "Orion";
+  const domain = "orion2000.com";
   
-  const dbData = dbSheet.getDataRange().getValues();
-  const scoreData = scoreSheet.getDataRange().getValues();
+  const sql = `
+    SELECT 
+      t1.partner_id,
+      t1.partner_name,
+      t1.profile_details.residing_country,
+      d as domain
+    FROM \`concord-prod.service_partnercoe.drp_partner_master\` AS t1,
+    UNNEST(t1.partner_details.email_domain) as d
+    WHERE LOWER(t1.partner_name) LIKE '%${keyword.toLowerCase()}%'
+       OR LOWER(d) LIKE '%${domain.toLowerCase()}%'
+  `;
   
-  let dbCount = "Not Found";
-  for (let i = 1; i < dbData.length; i++) {
-    if (String(dbData[i][1]).includes("Accenture")) { // Name is col 1
-      // Find Total Profiles column index
-      const headers = dbData[0];
-      const idx = headers.indexOf("Total_Profiles");
-      dbCount = dbData[i][idx];
-      break;
+  Logger.log(`Running Debug Search for '${keyword}' or '${domain}'...`);
+
+  try {
+    const request = { query: sql, useLegacySql: false };
+    const queryResults = BigQuery.Jobs.query(request, PROJECT_ID);
+
+    if (!queryResults.rows || queryResults.rows.length === 0) {
+      Logger.log("No results found in BigQuery.");
+      return;
     }
+
+    Logger.log(`Found ${queryResults.rows.length} matches:`);
+    queryResults.rows.forEach(row => {
+      const f = row.f;
+      Logger.log(`[${f[0].v}] ${f[1].v} | Country: ${f[2].v} | Domain: ${f[3].v}`);
+    });
+
+  } catch (e) {
+    Logger.log("Query Failed: " + e.toString());
   }
-  
-  let scoreCount = "Not Found";
-  for (let i = 3; i < scoreData.length; i++) {
-    if (String(scoreData[i][1]).includes("Accenture")) { // Name is col 1
-      scoreCount = scoreData[i][2]; // Total Profiles is col 2
-      break;
-    }
-  }
-  
-  Logger.log("Accenture in DB (Dashboard Source): " + dbCount);
-  Logger.log("Accenture in Score Sheet (Delta Source): " + scoreCount);
 }
