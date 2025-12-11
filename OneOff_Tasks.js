@@ -144,3 +144,29 @@ function shareFolderFiles() {
     Logger.log("Critical Error: " + e.toString());
   }
 }
+
+/**
+ * One-click setup for the Autonomous Weekly Partner Summary Batch.
+ * Creates a Time-Driven trigger to run every 1 hour.
+ * Prevents duplicates by checking existing triggers.
+ */
+function setupBatchEmailTrigger() {
+  const functionName = 'runBatchEmailSender';
+
+  // 1. Check for existing triggers
+  const triggers = ScriptApp.getProjectTriggers();
+  for (const trigger of triggers) {
+    if (trigger.getHandlerFunction() === functionName) {
+      Logger.log(`Trigger for '${functionName}' already exists. skipping.`);
+      return;
+    }
+  }
+
+  // 2. Create new Trigger (Every 1 Hour)
+  ScriptApp.newTrigger(functionName)
+    .timeBased()
+    .everyHours(1)
+    .create();
+
+  Logger.log(`SUCCESS: Created hourly trigger for '${functionName}'.`);
+}
