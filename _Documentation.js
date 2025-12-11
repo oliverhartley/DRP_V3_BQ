@@ -68,6 +68,7 @@
  * PHASE 3: MAINTENANCE
  *    1. Run `runLinkUpdateManual`: If the dashboard links look broken or missing.
  *    2. Run `setupDashboard`: If the dropdowns stop working or show old data.
+ *    3. Run `setUpProjectTriggers` (One-Off): To configure the Daily/Weekly automation.
  * 
  * ============================================================================
  * ⚠️ 3. KNOWN CONSTRAINTS & LOGIC NOTES

@@ -170,3 +170,37 @@ function setupBatchEmailTrigger() {
 
   Logger.log(`SUCCESS: Created hourly trigger for '${functionName}'.`);
 }
+
+/**
+ * Sets up the standard project triggers.
+ * 1. runFullDataUpdate: Daily (Example: 2 AM)
+ * 2. runManagedBatch: Weekly on Mondays (Example: 8 AM)
+ * 3. runManagedBatch: Weekly on Tuesdays (Example: 8 AM)
+ */
+function setUpProjectTriggers() {
+  const triggers = ScriptApp.getProjectTriggers();
+
+  // Helper to check if trigger exists
+  const triggerExists = (funcName) => triggers.some(t => t.getHandlerFunction() === funcName);
+
+  // 1. Daily Full Data Update
+  const dailyFunc = 'runFullDataUpdate';
+  if (!triggerExists(dailyFunc)) {
+    ScriptApp.newTrigger(dailyFunc).timeBased().everyDays(1).atHour(2).create();
+    Logger.log(`Created Daily Trigger for ${dailyFunc} at 2 AM.`);
+  } else {
+    Logger.log(`Trigger for ${dailyFunc} already exists.`);
+  }
+
+  // 2. Weekly Managed Batch (Monday & Tuesday)
+  const batchFunc = 'runManagedBatch';
+  if (!triggerExists(batchFunc)) {
+    ScriptApp.newTrigger(batchFunc).timeBased().onWeekDay(ScriptApp.WeekDay.MONDAY).atHour(8).create();
+    Logger.log(`Created Weekly Trigger (Monday) for ${batchFunc} at 8 AM.`);
+
+    ScriptApp.newTrigger(batchFunc).timeBased().onWeekDay(ScriptApp.WeekDay.TUESDAY).atHour(8).create();
+    Logger.log(`Created Weekly Trigger (Tuesday) for ${batchFunc} at 8 AM.`);
+  } else {
+    Logger.log(`Trigger(s) for ${batchFunc} already exist. Skipping creation to avoid duplicates.`);
+  }
+}
