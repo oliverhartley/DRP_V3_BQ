@@ -121,10 +121,11 @@ function generateAndSendPartnerSummary(partnerName, ssId, toEmails, ccEmails) {
     return;
   }
   
-  // 2. Prepare Prompt for Gemini
-  const prompt = `
+  // 3. Call Gemini for Full Analysis (Dashboard + Summary)
+  // Refined Prompt for "HTML Infographic"
+  const fullPrompt = `
     You are an expert Data Analyst and Executive Assistant.
-    Please analyze the following data from a Partner Dashboard and a Profile Deep Dive for partner: "${partnerName}".
+    Please analyze the following data for partner: "${partnerName}".
     
     Data from "Tier Dashboard":
     ${sheetData.tierDashboard}
@@ -133,130 +134,64 @@ function generateAndSendPartnerSummary(partnerName, ssId, toEmails, ccEmails) {
     ${sheetData.profileDeepDive}
     
     Task:
-    Write a concise Executive Summary of this partner's readiness and profile status.
+    Create a comprehensive Email Report containing TWO SECTIONS:
     
-    IMPORTANT: Use the following definitions for Tiers in your analysis:
-    - Tier 1: Delivery Ready (Practitioner has considerable technical capabilities on Google Cloud).
-    - Tier 2: Intermediate (Practitioner can become delivery ready through certifications, challenge labs, and training).
-    - Tier 3: Beginner to Intermediate (Practitioner can become delivery ready through certifications, challenge labs, and training).
-    - Tier 4: Beginner (Practitioner is just starting out on Google Cloud).
-
+    SECTION 1: VISUAL EXECUTIVE DASHBOARD (The "Infographic")
+    - This must be a graphical representation using ONLY HTML/CSS (Files, Tables, Divs).
+    - Do NOT use images or external charts. Use HTML/CSS to create "Bar Charts" and "Scorecards".
+    - Layout:
+        - **Header**: Partner Name & "Readiness Snapshot".
+        - **KPI Row**: 3 Cards showing (Total Profiles, Top Solution, Readiness Score/Tier 1 Count).
+        - **Strengths Chart**: A Visual List simulating a Bar Chart (e.g., <div style="width: 80%; background: #4285f4; height: 10px;"></div>) for Tier 1 counts by Solution.
+        - **Upskilling Gaps**: A Table showing "Beginner Count" vs "Target".
+        - **Top Talent**: A clean table of the top 3-5 individuals.
+    - Style: Use Google Brand colors (Blue #4285f4, Red #ea4335, Yellow #fbbc04, Green #34a853). Use Grey #f1f3f4 for backgrounds.
+    
+    SECTION 2: DETAILED EXECUTIVE SUMMARY
+    - Written narrative explaining the data.
+    - Tiers Definitions:
+      - Tier 1: Delivery Ready (Expert).
+      - Tier 2: Intermediate.
+      - Tier 3: Beginner-Intermediate.
+      - Tier 4: Beginner.
+    - Sections: "Key Strengths", "Critical Gaps", "Recommendations".
+    
     Output Format:
-    Provide the response in clean, professional HTML format suitable for an email body.
-    - Use <h2> for section headers.
-    - Use <ul> and <li> for lists.
-    - Use <b> for emphasis.
-    - Do NOT use markdown (like ** or ##).
-    - Do NOT include the subject line in the HTML body (I will add it separately).
-    - Style the HTML to be readable and professional (e.g., standard fonts).
+    Return ONE block of clean, professional HTML.
+    - Use Inline CSS for everything (Gmail compatible).
+    - Make it look premium (padding, border-radius, shadows).
   `;
 
-  // 3. Call Gemini for Text Summary
-  const summaryHtml = callGeminiWithFallback(prompt);
-  if (!summaryHtml) {
+  const finalHtml = callGeminiWithFallback(fullPrompt);
+  if (!finalHtml) {
     Logger.log("  ERROR: Failed to generate summary from Gemini.");
     return;
   }
 
-  // 4. Generate Infographic (Best Effort)
-  let inlineImages = {};
-  let infographicHtml = "";
-  try {
-    const infographicBlob = generateInfographic(partnerName, sheetData);
-    if (infographicBlob) {
-      inlineImages["infographic"] = infographicBlob;
-      infographicHtml = `<div style="text-align: center; margin-bottom: 20px;"><img src="cid:infographic" style="max-width: 100%; height: auto; border: 1px solid #ddd; border-radius: 8px;" alt="Partner Infographic"></div>`;
-    }
-  } catch (e) {
-    Logger.log(`  WARNING: Failed to generate infographic for ${partnerName}: ${e.toString()}`);
-  }
-
-  // 5. Send Email
+  // 4. Send Email
   const subject = `[GCP DRP Readiness] Partner Executive Summary: ${partnerName}`;
   const fileUrl = `https://docs.google.com/spreadsheets/d/${ssId}/edit`;
   
   // Clean up any potential markdown code blocks
-  let cleanHtml = summaryHtml.replace(/```html/g, "").replace(/```/g, "").trim();
+  let cleanHtml = finalHtml.replace(/```html/g, "").replace(/```/g, "").trim();
 
   const emailBody = `
-    <div style="font-family: Arial, sans-serif; color: #333;">
-      ${infographicHtml}
+    <div style="font-family: Arial, sans-serif; color: #333; max-width: 800px; margin: 0 auto;">
       ${cleanHtml}
       <br><br>
       <hr>
-      <p>
-        <a href="${fileUrl}" style="background-color: #4285f4; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">
+      <p style="text-align: center;">
+        <a href="${fileUrl}" style="background-color: #4285f4; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px;">
           Open Partner Dashboard
         </a>
       </p>
-      <p style="font-size: 12px; color: #666;">
+      <p style="font-size: 12px; color: #666; text-align: center;">
         Link to file: <a href="${fileUrl}">${fileUrl}</a>
       </p>
     </div>
   `;
 
-  sendEmail(subject, emailBody, toEmails, ccEmails, inlineImages);
-}
-
-function generateInfographic(partnerName, sheetData) {
-  // Use gemini-2.5-flash-image
-  const MODEL_NAME = 'gemini-2.5-flash-image';
-  const API_VERSION = 'v1beta';
-
-  const apiKey = PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY');
-  if (!apiKey) return null;
-
-  const url = `https://generativelanguage.googleapis.com/${API_VERSION}/models/${MODEL_NAME}:generateContent?key=${apiKey}`;
-
-  // Simplified data for image prompt to avoid token limits in image model
-  // Extracting key stats roughly
-  const prompt = `
-    Create a professional, clean infographic for "Google Cloud Partner: ${partnerName}".
-    
-    Data to visualize:
-    ${sheetData.tierDashboard.substring(0, 500)}... (and more)
-    
-    Requirements:
-    - Title: "${partnerName} Readiness Snapshot"
-    - Show key stats: Current Tiers, Strengths.
-    - Style: Corporate, Google Blue & Grey colors, White background.
-    - Make it easy to read at a glance.
-  `;
-
-  const payload = {
-    contents: [{ parts: [{ text: prompt }] }],
-    generationConfig: {
-      responseMimeType: "image/jpeg"
-    }
-  };
-
-  try {
-    const options = {
-      method: 'post',
-      contentType: 'application/json',
-      payload: JSON.stringify(payload),
-      muteHttpExceptions: true
-    };
-
-    const response = UrlFetchApp.fetch(url, options);
-    if (response.getResponseCode() === 200) {
-      const json = JSON.parse(response.getContentText());
-      // Check for inline data (Base64)
-      if (json.candidates && json.candidates[0].content.parts) {
-        for (const part of json.candidates[0].content.parts) {
-          if (part.inlineData && part.inlineData.data) {
-            const imageBlob = Utilities.newBlob(Utilities.base64Decode(part.inlineData.data), part.inlineData.mimeType || "image/jpeg", "infographic.jpg");
-            return imageBlob;
-          }
-        }
-      }
-    } else {
-      Logger.log(`  Infographic Gen Failed: ${response.getResponseCode()} - ${response.getContentText()}`);
-    }
-  } catch (e) {
-    Logger.log(`  Infographic Gen Exception: ${e.toString()}`);
-  }
-  return null;
+  sendEmail(subject, emailBody, toEmails, ccEmails);
 }
 
 function getPartnerSheetData(ssId) {
@@ -335,7 +270,7 @@ function callGeminiWithFallback(prompt) {
   return null;
 }
 
-function sendEmail(subject, htmlBody, to, cc, inlineImages) {
+function sendEmail(subject, htmlBody, to, cc) {
   try {
     const emailOptions = {
       to: to,
@@ -345,10 +280,6 @@ function sendEmail(subject, htmlBody, to, cc, inlineImages) {
 
     if (cc && String(cc).trim() !== "") {
       emailOptions.cc = cc;
-    }
-
-    if (inlineImages && Object.keys(inlineImages).length > 0) {
-      emailOptions.inlineImages = inlineImages;
     }
 
     if (!to || String(to).trim() === "") {
