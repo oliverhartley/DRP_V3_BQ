@@ -10,8 +10,17 @@
 // NOTE: Uses Global Constants from Config.gs
 // SOURCE_SS_ID, PARTNER_FOLDER_ID
 
+// --- BATCH CONFIGURATION ---
+const COL_PARTNER_NAME = 33; // Column AH
+const COL_TO_EMAIL = 35;     // Column AJ
+const COL_CC_EMAIL = 36;     // Column AK
+const COL_STATUS = 37;       // Column AL (New: For Status Tracking)
+const MAX_EXECUTION_TIME_MS = 250000; // ~4.1 minutes (Safe buffer for 6 min limit)
+
 function runBatchEmailSender() {
-  Logger.log(">>> STARTING BATCH EMAIL PROCESS <<<");
+  const startTime = new Date().getTime();
+  const currentBatchId = getBatchId(); // Format: SENT_YYYY_WW
+  Logger.log(`>>> STARTING BATCH EMAIL PROCESS [Batch ID: ${currentBatchId}] <<<`);
 
   const ss = SpreadsheetApp.openById(SOURCE_SS_ID);
   const sheet = ss.getSheetByName("Copy of Consolidate by Partner");
@@ -20,25 +29,35 @@ function runBatchEmailSender() {
     return;
   }
 
-  const data = sheet.getDataRange().getValues();
-  // Headers are likely row 1. Data starts row 2.
-
-  // Indices (0-based)
-  const COL_PARTNER_NAME = 33; // Column AH
-  const COL_TO_EMAIL = 35;    // Column AJ
-  const COL_CC_EMAIL = 36;    // Column AK
-
+  const dataRange = sheet.getDataRange();
+  const data = dataRange.getValues();
   let processedCount = 0;
+  let skippedCount = 0;
 
   for (let i = 1; i < data.length; i++) {
+    // Check time limit before starting next row
+    if (isTimeLimitApproaching(startTime)) {
+      Logger.log("WARNING: Time limit approaching. Stopping to allow safe resume on next trigger.");
+      break;
+    }
+
     const row = data[i];
     const partnerName = row[COL_PARTNER_NAME];
     const toEmails = row[COL_TO_EMAIL];
     const ccEmails = row[COL_CC_EMAIL];
+    const currentStatus = row[COL_STATUS];
 
-    // Trigger: Column AK (CC) is NOT empty
-    // User Request: "where in the column AK in not Empty"
+    // Trigger condition:
+    // 1. Column AK (CC) is NOT empty (Original requirement)
+    // 2. Status != currentBatchId (New: Avoid duplicates for this week)
     if (ccEmails && String(ccEmails).trim() !== "") {
+
+      if (currentStatus === currentBatchId) {
+        Logger.log(`[Row ${i + 1}] Skipping ${partnerName} (Already processed for this batch).`);
+        skippedCount++;
+        continue;
+      }
+
       Logger.log(`[Row ${i + 1}] Processing Partner: ${partnerName}`);
 
       const fileId = findPartnerFileId(partnerName);
@@ -46,9 +65,13 @@ function runBatchEmailSender() {
         Logger.log(`  File Found: ${fileId}`);
         try {
           generateAndSendPartnerSummary(partnerName, fileId, toEmails, ccEmails);
+
+          // Update Status to Current Batch ID
+          sheet.getRange(i + 1, COL_STATUS + 1).setValue(currentBatchId);
           processedCount++;
-          // Respect Gemini quotas (avoid hitting rate limits too hard)
-          Utilities.sleep(5000);
+
+          // Respect Gemini quotas
+          Utilities.sleep(5000); 
         } catch (e) {
           Logger.log(`  ERROR processing ${partnerName}: ${e.toString()}`);
         }
@@ -57,7 +80,20 @@ function runBatchEmailSender() {
       }
     }
   }
-  Logger.log(`>>> BATCH PROCESS COMPLETE. Processed ${processedCount} partners. <<<`);
+  Logger.log(`>>> BATCH RUN COMPLETE. Sent: ${processedCount}, Skipped: ${skippedCount} <<<`);
+}
+
+function getBatchId() {
+  const now = new Date();
+  const year = now.getFullYear();
+  // Simple Week Number Calculation
+  const onejan = new Date(year, 0, 1);
+  const week = Math.ceil((((now.getTime() - onejan.getTime()) / 86400000) + onejan.getDay() + 1) / 7);
+  return `SENT_${year}_${week}`;
+}
+
+function isTimeLimitApproaching(startTime) {
+  return (new Date().getTime() - startTime) > MAX_EXECUTION_TIME_MS;
 }
 
 function findPartnerFileId(partnerName) {
