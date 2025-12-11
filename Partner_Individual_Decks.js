@@ -19,7 +19,7 @@ const COL_INDEX_MCO = 8;
 const COL_INDEX_MEXICO = 9;
 const COL_INDEX_PS = 10;
 const COL_INDEX_DECK_STATUS = 20; // Column U
-const MAX_EXECUTION_TIME_MS = 1500000; // 25 minutes
+const MAX_DECK_EXECUTION_TIME_MS = 1500000; // 25 minutes
 
 const PRODUCT_SCHEMA = [
   { solution: 'Infrastructure Modernization', color: '#fce5cd', products: ['Google Compute Engine', 'Google Cloud Networking', 'SAP on Google Cloud', 'Google Cloud VMware Engine', 'Google Distributed Cloud'] },
@@ -101,7 +101,7 @@ function getBatchId() {
 }
 
 function isTimeLimitApproaching(startTime) {
-  return (new Date().getTime() - startTime) > MAX_EXECUTION_TIME_MS;
+  return (new Date().getTime() - startTime) > MAX_DECK_EXECUTION_TIME_MS;
 }
 
 // --- GENERATOR ---
