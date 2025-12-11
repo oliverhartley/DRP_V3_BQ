@@ -53,14 +53,29 @@ function runBigQueryQuery() {
       -- Query Version: ${new Date().toISOString()}
       WITH Spreadsheet_Data AS ( SELECT * FROM UNNEST([ ${VIRTUAL_TABLE_DATA} ]) ),
       
-      -- 1. Get Raw Data with Join to Spreadsheet
+      -- 1. Flatten BigQuery Data (Safe Pre-processing)
+      BQ_Flattened AS (
+        SELECT 
+           t1.partner_id,
+           t1.partner_name,
+           t1.profile_details.profile_id,
+           t1.profile_details.residing_country,
+           LOWER(bq_domain) as bq_domain_flat
+        FROM \`concord-prod.service_partnercoe.drp_partner_master\` AS t1,
+        UNNEST(t1.partner_details.email_domain) AS bq_domain
+        WHERE t1.profile_details.residing_country IN ('Argentina', 'Bolivia', 'Brazil', 'Chile', 'Colombia', 'Costa Rica', 'Cuba', 'Dominican Republic', 'Ecuador', 'El Salvador', 'Guatemala', 'Honduras', 'Mexico', 'Nicaragua', 'Panama', 'Paraguay', 'Peru', 'Uruguay', 'Venezuela')
+      ),
+
+      -- 2. Join Sheet (Left) -> BQ (Right) using the flattened table
+      -- This ensures ALL sheet rows are kept, even if no BQ match found
       RawData AS (
           SELECT
-              t1.partner_id,
-              t1.partner_name,
-              t1.profile_details.profile_id,
-              t1.profile_details.residing_country,
-              sheet.domain IS NOT NULL as is_matched,
+              bq.partner_id,
+              bq.partner_name,
+              bq.profile_id,
+              bq.residing_country,
+              sheet.domain IS NOT NULL as is_matched, 
+              sheet.domain as sheet_domain, 
               IFNULL(sheet.is_gsi, FALSE) as is_gsi,
               IFNULL(sheet.is_brazil, FALSE) as is_brazil,
               IFNULL(sheet.is_mco, FALSE) as is_mco,
@@ -72,29 +87,28 @@ function runBigQueryQuery() {
               IFNULL(sheet.is_db, FALSE) as is_db,
               IFNULL(sheet.is_analytics, FALSE) as is_analytics,
               IFNULL(sheet.is_infra, FALSE) as is_infra,
-              IFNULL(sheet.is_app_mod, FALSE) as is_app_mod,
-              bq_domain
-          FROM \`concord-prod.service_partnercoe.drp_partner_master\` AS t1
-          CROSS JOIN UNNEST(t1.partner_details.email_domain) AS bq_domain
-          LEFT JOIN Spreadsheet_Data AS sheet ON REGEXP_REPLACE(TRIM(LOWER(bq_domain)), r'^@', '') = REGEXP_REPLACE(TRIM(LOWER(sheet.domain)), r'^@', '')
-          WHERE t1.profile_details.residing_country IN ('Argentina', 'Bolivia', 'Brazil', 'Chile', 'Colombia', 'Costa Rica', 'Cuba', 'Dominican Republic', 'Ecuador', 'El Salvador', 'Guatemala', 'Honduras', 'Mexico', 'Nicaragua', 'Panama', 'Paraguay', 'Peru', 'Uruguay', 'Venezuela')
+              IFNULL(sheet.is_app_mod, FALSE) as is_app_mod
+          FROM Spreadsheet_Data AS sheet
+          LEFT JOIN BQ_Flattened AS bq
+            ON REGEXP_REPLACE(TRIM(LOWER(bq.bq_domain_flat)), r'^@', '') = REGEXP_REPLACE(TRIM(LOWER(sheet.domain)), r'^@', '')
       ),
       
-      -- 2. Get Unique Profiles (All Partners)
+      -- 3. Get Unique Profiles
       UniqueProfiles AS (
           SELECT DISTINCT
-              partner_id,
-              partner_name,
+              IFNULL(partner_id, CONCAT('MISSING_BQ_', sheet_domain)) as partner_id, 
+              IFNULL(partner_name, sheet_domain) as partner_name, 
               profile_id,
-              residing_country
+              residing_country,
+              sheet_domain
           FROM RawData
       ),
       
-      -- 3. Aggregate Partner Flags (Handle multiple matched domains)
+      -- 4. Aggregate Partner Flags
       PartnerFlags AS (
           SELECT
-              partner_id,
-              LOGICAL_OR(is_matched) as is_matched,
+              IFNULL(partner_id, CONCAT('MISSING_BQ_', sheet_domain)) as partner_id,
+              TRUE as is_matched, 
               LOGICAL_OR(is_gsi) as is_gsi,
               LOGICAL_OR(is_brazil) as is_brazil,
               LOGICAL_OR(is_mco) as is_mco,
@@ -107,19 +121,19 @@ function runBigQueryQuery() {
               LOGICAL_OR(is_analytics) as is_analytics,
               LOGICAL_OR(is_infra) as is_infra,
               LOGICAL_OR(is_app_mod) as is_app_mod,
-              ARRAY_AGG(DISTINCT bq_domain) as domains
+              ARRAY_AGG(DISTINCT sheet_domain) as domains
           FROM RawData
           GROUP BY partner_id
       ),
       
-      -- 4. Profile Breakdown Prep
+      -- 5. Profile Breakdown
       ProfileBreakdown_Prep AS (
           SELECT partner_id, residing_country, COUNT(DISTINCT profile_id) as count
           FROM UniqueProfiles
+          WHERE profile_id IS NOT NULL 
           GROUP BY partner_id, residing_country
       ),
       
-      -- 5. Profile Breakdown Aggregation
       ProfileBreakdown AS (
           SELECT 
               partner_id, 
@@ -132,7 +146,7 @@ function runBigQueryQuery() {
       PartnerAggregation AS (
           SELECT
               up.partner_id,
-              up.partner_name,
+              MAX(up.partner_name) as partner_name, 
               COUNT(DISTINCT up.profile_id) AS Total_Profiles,
               STRING_AGG(DISTINCT up.residing_country, ', ') AS Operating_Countries,
               (APPROX_TOP_COUNT(up.residing_country, 1))[OFFSET(0)].value AS Top_Operating_Country,
@@ -142,7 +156,7 @@ function runBigQueryQuery() {
               pf.domains
           FROM UniqueProfiles up
           JOIN PartnerFlags pf ON up.partner_id = pf.partner_id
-          GROUP BY up.partner_id, up.partner_name, pf.is_matched, pf.is_gsi, pf.is_brazil, pf.is_mco, pf.is_mexico, pf.is_ps, pf.is_ai_ml, pf.is_gws, pf.is_security, pf.is_db, pf.is_analytics, pf.is_infra, pf.is_app_mod, pf.domains
+          GROUP BY up.partner_id, pf.is_matched, pf.is_gsi, pf.is_brazil, pf.is_mco, pf.is_mexico, pf.is_ps, pf.is_ai_ml, pf.is_gws, pf.is_security, pf.is_db, pf.is_analytics, pf.is_infra, pf.is_app_mod, pf.domains
       )
       SELECT 
           pa.* EXCEPT (domains), 

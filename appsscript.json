@@ -19,5 +19,8 @@
       "menuName": "help painting",
       "functionName": "helppainting"
     }]
+  },
+  "executionApi": {
+    "access": "MYSELF"
   }
 }
