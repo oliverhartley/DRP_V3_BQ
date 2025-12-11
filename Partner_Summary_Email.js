@@ -23,9 +23,9 @@ function runBatchEmailSender() {
   Logger.log(`>>> STARTING BATCH EMAIL PROCESS [Batch ID: ${currentBatchId}] <<<`);
 
   const ss = SpreadsheetApp.openById(SOURCE_SS_ID);
-  const sheet = ss.getSheetByName("Copy of Consolidate by Partner");
+  const sheet = ss.getSheetByName("Consolidate by Partner");
   if (!sheet) {
-    Logger.log("ERROR: 'Copy of Consolidate by Partner' sheet not found in Source SS.");
+    Logger.log("ERROR: 'Consolidate by Partner' sheet not found in Source SS.");
     return;
   }
 
