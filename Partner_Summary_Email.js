@@ -137,7 +137,7 @@ function generateAndSendPartnerSummary(partnerName, ssId, toEmails, ccEmails) {
     Create a comprehensive Email Report containing TWO SECTIONS:
     
     SECTION 1: VISUAL EXECUTIVE DASHBOARD (The "Infographic")
-    - Start with a casual, friendly greeting (e.g., "Hi team, here is the latest readiness snapshot for ${partnerName}!").
+    - Start with this EXACT greeting: "Hola ${partnerName},<br><br>Aquí su informe semanal del DRP Status para su análisis. Cualquier duda puedes contactar al equipo de Partner (copiado en este correo)."
     - This must be a graphical representation using ONLY HTML/CSS (Files, Tables, Divs).
     - Do NOT use images or external charts. Use HTML/CSS to create "Bar Charts" and "Scorecards".
     - Layout:
