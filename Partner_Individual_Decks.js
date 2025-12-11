@@ -174,6 +174,21 @@ function updatePartnerSpreadsheet(partnerName, dashData, totalProfilesFromScoreD
   
   let sheet = ss.getSheetByName(DECK_SHEET_NAME);
   if (!sheet) { sheet = ss.insertSheet(DECK_SHEET_NAME); }
+
+  // --- PRESERVE COLUMN G (Es Producto Foco) ---
+  let existingFocusData = [];
+  const focusColIndex = 7; // Column G
+  try {
+    const lastRow = sheet.getLastRow();
+    if (lastRow > 1) {
+      const headerVal = sheet.getRange(1, focusColIndex).getValue();
+      // Check if header indicates focus column or if data exists (Column G is index 7)
+      if (headerVal === "Es Producto Foco" || lastRow > 1) {
+        existingFocusData = sheet.getRange(2, focusColIndex, lastRow - 1, 1).getValues();
+      }
+    }
+  } catch (e) { Logger.log("Error reading existing focus data: " + e.toString()); }
+
   sheet.clear();
 
   let diveSheet = ss.getSheetByName("Profile Deep Dive");
@@ -183,6 +198,24 @@ function updatePartnerSpreadsheet(partnerName, dashData, totalProfilesFromScoreD
 
   if (dashData.length > 0) {
     sheet.getRange(1, 1, dashData.length, dashData[0].length).setValues(dashData);
+
+    // --- RESTORE / INIT COLUMN G ---
+    sheet.getRange(1, focusColIndex).setValue("Es Producto Foco");
+    const dataRows = dashData.length - 1;
+    if (dataRows > 0) {
+      const focusRange = sheet.getRange(2, focusColIndex, dataRows, 1);
+      focusRange.insertCheckboxes();
+
+      if (existingFocusData.length > 0) {
+        // Restore values, handling potential length mismatch
+        const restoredValues = [];
+        for (let i = 0; i < dataRows; i++) {
+          const val = (i < existingFocusData.length) ? existingFocusData[i][0] : false;
+          restoredValues.push([val]);
+        }
+        focusRange.setValues(restoredValues);
+      }
+    }
 
     const totalProfiles = pivotData.length;
     const profilesWithTier = totalProfiles > 0 ? Number(totalProfilesFromScoreData) : 0; // Rename arg for clarity
@@ -296,6 +329,12 @@ function formatDeckSheet(sheet, lastRow, lastCol, diveSheetName) {
     // NEW: Apply dynamic formulas to the table
     // Column A: Solutions, Column B: Products, Col C: Tier 1, Col D: Tier 2, Col E: Tier 3, Col F: Tier 4
     // Profile Deep Dive: Col B is Country, Col E onwards are products (due to new Tier 1 Count column)
+
+    // --- FORMAT COLUMN G (Es Producto Foco) ---
+    sheet.getRange(1, 7).setBackground("#e69138").setFontColor("white").setFontWeight("bold").setHorizontalAlignment("center").setBorder(true, true, true, true, true, true).setWrapStrategy(SpreadsheetApp.WrapStrategy.WRAP);
+    sheet.setColumnWidth(7, 100);
+    sheet.getRange(2, 7, lastRow - 1, 1).setBorder(true, true, true, true, true, true).setHorizontalAlignment("center");
+
     let currentProductColIndex = 5; // Start at Column E (Google Compute Engine) in Profile Deep Dive
     for (let i = 2; i <= lastRow; i++) {
       const product = sheet.getRange(i, 2).getValue();
