@@ -280,7 +280,7 @@ function updatePartnerSpreadsheet(partnerName, dashData, totalProfilesFromScoreD
     sheet.getRange("M2").setDataValidation(rule);
 
     // Ensure diveSheet has enough columns before creating formulas that reference them
-    if (diveSheet.getMaxColumns() < pivotData[0].length) {
+    if (pivotData.length > 0 && diveSheet.getMaxColumns() < pivotData[0].length) {
       diveSheet.insertColumnsAfter(diveSheet.getMaxColumns(), pivotData[0].length - diveSheet.getMaxColumns());
     }
 
