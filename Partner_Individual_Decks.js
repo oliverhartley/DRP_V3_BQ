@@ -18,7 +18,7 @@ const COL_INDEX_BRAZIL = 7;
 const COL_INDEX_MCO = 8;
 const COL_INDEX_MEXICO = 9;
 const COL_INDEX_PS = 10;
-const COL_INDEX_DECK_STATUS = 19; // Column T
+const COL_INDEX_DECK_STATUS = 20; // Column U
 const MAX_EXECUTION_TIME_MS = 1500000; // 25 minutes
 
 const PRODUCT_SCHEMA = [
