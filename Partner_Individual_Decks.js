@@ -43,7 +43,7 @@ function runPSBatch() { runBatchByColumnIndex(COL_INDEX_PS, "PS PARTNERS", true)
 // --- CONTROLLER ---
 function runBatchByColumnIndex(colIndex, batchName, targetValue = true) {
   const startTime = new Date().getTime();
-  const currentBatchId = getBatchId();
+  const currentBatchId = getDeckBatchId();
   Logger.log(`>>> STARTING BATCH: ${batchName} [Batch ID: ${currentBatchId}] <<<`);
   
   const partnerList = getPartnersByFlag(colIndex, targetValue);
@@ -91,7 +91,7 @@ function runBatchByColumnIndex(colIndex, batchName, targetValue = true) {
   Logger.log(`>>> BATCH COMPLETE: ${batchName} <<<`);
 }
 
-function getBatchId() {
+function getDeckBatchId() {
   const now = new Date();
   const shiftedDate = new Date(now.getTime() - 24 * 60 * 60 * 1000); // Shift for Tue start
   const year = shiftedDate.getFullYear();
