@@ -151,14 +151,27 @@ function generateAndSendPartnerSummary(partnerName, ssId, toEmails, ccEmails) {
     - Style the HTML to be readable and professional (e.g., standard fonts).
   `;
 
-  // 3. Call Gemini
+  // 3. Call Gemini for Text Summary
   const summaryHtml = callGeminiWithFallback(prompt);
   if (!summaryHtml) {
     Logger.log("  ERROR: Failed to generate summary from Gemini.");
     return;
   }
 
-  // 4. Send Email
+  // 4. Generate Infographic (Best Effort)
+  let inlineImages = {};
+  let infographicHtml = "";
+  try {
+    const infographicBlob = generateInfographic(partnerName, sheetData);
+    if (infographicBlob) {
+      inlineImages["infographic"] = infographicBlob;
+      infographicHtml = `<div style="text-align: center; margin-bottom: 20px;"><img src="cid:infographic" style="max-width: 100%; height: auto; border: 1px solid #ddd; border-radius: 8px;" alt="Partner Infographic"></div>`;
+    }
+  } catch (e) {
+    Logger.log(`  WARNING: Failed to generate infographic for ${partnerName}: ${e.toString()}`);
+  }
+
+  // 5. Send Email
   const subject = `[GCP DRP Readiness] Partner Executive Summary: ${partnerName}`;
   const fileUrl = `https://docs.google.com/spreadsheets/d/${ssId}/edit`;
   
@@ -167,6 +180,7 @@ function generateAndSendPartnerSummary(partnerName, ssId, toEmails, ccEmails) {
 
   const emailBody = `
     <div style="font-family: Arial, sans-serif; color: #333;">
+      ${infographicHtml}
       ${cleanHtml}
       <br><br>
       <hr>
@@ -181,7 +195,68 @@ function generateAndSendPartnerSummary(partnerName, ssId, toEmails, ccEmails) {
     </div>
   `;
 
-  sendEmail(subject, emailBody, toEmails, ccEmails);
+  sendEmail(subject, emailBody, toEmails, ccEmails, inlineImages);
+}
+
+function generateInfographic(partnerName, sheetData) {
+  // Use gemini-2.5-flash-image
+  const MODEL_NAME = 'gemini-2.5-flash-image';
+  const API_VERSION = 'v1beta';
+
+  const apiKey = PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY');
+  if (!apiKey) return null;
+
+  const url = `https://generativelanguage.googleapis.com/${API_VERSION}/models/${MODEL_NAME}:generateContent?key=${apiKey}`;
+
+  // Simplified data for image prompt to avoid token limits in image model
+  // Extracting key stats roughly
+  const prompt = `
+    Create a professional, clean infographic for "Google Cloud Partner: ${partnerName}".
+    
+    Data to visualize:
+    ${sheetData.tierDashboard.substring(0, 500)}... (and more)
+    
+    Requirements:
+    - Title: "${partnerName} Readiness Snapshot"
+    - Show key stats: Current Tiers, Strengths.
+    - Style: Corporate, Google Blue & Grey colors, White background.
+    - Make it easy to read at a glance.
+  `;
+
+  const payload = {
+    contents: [{ parts: [{ text: prompt }] }],
+    generationConfig: {
+      responseMimeType: "image/jpeg"
+    }
+  };
+
+  try {
+    const options = {
+      method: 'post',
+      contentType: 'application/json',
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
+    };
+
+    const response = UrlFetchApp.fetch(url, options);
+    if (response.getResponseCode() === 200) {
+      const json = JSON.parse(response.getContentText());
+      // Check for inline data (Base64)
+      if (json.candidates && json.candidates[0].content.parts) {
+        for (const part of json.candidates[0].content.parts) {
+          if (part.inlineData && part.inlineData.data) {
+            const imageBlob = Utilities.newBlob(Utilities.base64Decode(part.inlineData.data), part.inlineData.mimeType || "image/jpeg", "infographic.jpg");
+            return imageBlob;
+          }
+        }
+      }
+    } else {
+      Logger.log(`  Infographic Gen Failed: ${response.getResponseCode()} - ${response.getContentText()}`);
+    }
+  } catch (e) {
+    Logger.log(`  Infographic Gen Exception: ${e.toString()}`);
+  }
+  return null;
 }
 
 function getPartnerSheetData(ssId) {
@@ -260,7 +335,7 @@ function callGeminiWithFallback(prompt) {
   return null;
 }
 
-function sendEmail(subject, htmlBody, to, cc) {
+function sendEmail(subject, htmlBody, to, cc, inlineImages) {
   try {
     const emailOptions = {
       to: to,
@@ -270,6 +345,10 @@ function sendEmail(subject, htmlBody, to, cc) {
 
     if (cc && String(cc).trim() !== "") {
       emailOptions.cc = cc;
+    }
+
+    if (inlineImages && Object.keys(inlineImages).length > 0) {
+      emailOptions.inlineImages = inlineImages;
     }
 
     if (!to || String(to).trim() === "") {
