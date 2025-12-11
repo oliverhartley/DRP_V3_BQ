@@ -97,7 +97,7 @@ function getBatchId() {
   const year = shiftedDate.getFullYear();
   const onejan = new Date(year, 0, 1);
   const week = Math.ceil((((shiftedDate.getTime() - onejan.getTime()) / 86400000) + onejan.getDay() + 1) / 7);
-  return `DECK_${year}_${week}`;
+  return `UPDATED_${year}_${week}`;
 }
 
 function isTimeLimitApproaching(startTime) {
