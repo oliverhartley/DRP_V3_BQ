@@ -85,10 +85,15 @@ function runBatchEmailSender() {
 
 function getBatchId() {
   const now = new Date();
-  const year = now.getFullYear();
+  // Shift back 1 day (24 hours) so that Tuesday becomes the "start" of the calculated week.
+  // Real Monday -> Shifted Sunday (Previous Week)
+  // Real Tuesday -> Shifted Monday (New Week)
+  const shiftedDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+  const year = shiftedDate.getFullYear();
   // Simple Week Number Calculation
   const onejan = new Date(year, 0, 1);
-  const week = Math.ceil((((now.getTime() - onejan.getTime()) / 86400000) + onejan.getDay() + 1) / 7);
+  const week = Math.ceil((((shiftedDate.getTime() - onejan.getTime()) / 86400000) + onejan.getDay() + 1) / 7);
   return `SENT_${year}_${week}`;
 }
 
