@@ -361,7 +361,8 @@ function formatDeckSheet(sheet, lastRow, lastCol, diveSheetName) {
     const values = solutionCol.getValues();
     let mergeStartRow = 2; let currentVal = values[0][0];
     const applyBlockFormat = (startRow, endRow, val) => {
-        const span = endRow - startRow; sheet.getRange(startRow, 1, span, lastCol).setBackground(colorMap[val] || '#ffffff');
+      const span = endRow - startRow;
+      sheet.getRange(startRow, 1, span, 7).setBackground(colorMap[val] || '#ffffff');
         if (span > 0) { sheet.getRange(startRow, 1, span, 1).merge(); sheet.setRowHeights(startRow, span === 1 ? 1 : span, span === 1 ? 90 : 35); }
     };
     for (let i = 1; i < values.length; i++) { if (values[i][0] !== currentVal) { applyBlockFormat(mergeStartRow, i+2, currentVal); mergeStartRow = i+2; currentVal = values[i][0]; } }
