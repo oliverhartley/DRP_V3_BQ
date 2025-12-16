@@ -28,6 +28,7 @@ function runProfilesLoader() {
  * Fetches: Name, ProfileID, Country, JobTitle, Product, Score, Solution
  */
 function getProfilesSql() {
+  return `
     SELECT
         t1.partner_name,
         t1.profile_details.profile_id,
