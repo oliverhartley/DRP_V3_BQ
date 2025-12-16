@@ -196,3 +196,19 @@ function getAllLatamPartnersSql() {
     AND ARRAY_LENGTH(t1.partner_details.email_domain) > 0
   `;
 }
+
+/**
+ * Builds SQL to fetch distinct countries for each partner domain.
+ */
+function getPartnerCountryPresenceSql() {
+  return `
+    SELECT
+        REGEXP_REPLACE(TRIM(LOWER(t1.partner_details.email_domain[OFFSET(0)])), r'^@', '') AS domain,
+        ARRAY_AGG(DISTINCT t1.profile_details.residing_country IGNORE NULLS) AS operating_countries
+    FROM \`${PROJECT_ID}.service_partnercoe.drp_partner_master\` AS t1
+    WHERE t1.profile_details.residing_country IN ('Argentina', 'Bolivia', 'Brazil', 'Chile', 'Colombia', 'Costa Rica', 'Cuba', 'Dominican Republic', 'Ecuador', 'El Salvador', 'Guatemala', 'Honduras', 'Mexico', 'Nicaragua', 'Panama', 'Paraguay', 'Peru', 'Uruguay', 'Venezuela')
+    AND t1.partner_details.email_domain IS NOT NULL
+    AND ARRAY_LENGTH(t1.partner_details.email_domain) > 0
+    GROUP BY 1
+  `;
+}
