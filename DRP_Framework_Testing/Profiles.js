@@ -29,13 +29,10 @@ function runProfilesLoader() {
  */
 function getProfilesSql() {
   return `
-    SELECT
-        t1.partner_name,
-        t1.profile_details.profile_id,
-        t1.profile_details.residing_country
+    SELECT *
     FROM
-        \`${PROJECT_ID}.service_partnercoe.drp_partner_master\` AS t1
-    LIMIT 10
+        \`${PROJECT_ID}.service_partnercoe.drp_partner_master\`
+    LIMIT 5
   `;
 }
 
