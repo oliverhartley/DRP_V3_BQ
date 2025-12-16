@@ -8,53 +8,33 @@
 
 /**
  * Initializes the full database structure:
- * 1. DB_Partners (Target for Managed Partners)
+ * 1. DB_Managed_Context (Manual Source - Minimal)
  * 2. DB_Reference (Product/Solution Mappings)
+ * 3. CACHE_Partner_Landscape (Automated View)
  */
 function initSystem() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
 
-  // 1. Initialize DB_Partners
-  let sheetPartners = ss.getSheetByName(SHEETS.DB_PARTNERS);
-  if (!sheetPartners) {
-    sheetPartners = ss.insertSheet(SHEETS.DB_PARTNERS);
-    sheetPartners.setTabColor("16a765"); // Green for "Source"
+  // 1. Initialize DB_Managed_Context
+  let sheetContext = ss.getSheetByName(SHEETS.DB_MANAGED_CONTEXT);
+  if (!sheetContext) {
+    sheetContext = ss.insertSheet(SHEETS.DB_MANAGED_CONTEXT);
+    sheetContext.setTabColor("16a765"); // Green for "Source"
   }
 
-  const headersPartners = [
-    "Partner Name", "Domain",
-    "Managed Partner", // Explicit Flag
-    "Argentina", "Bolivia", "Brazil", "Chile", "Colombia", "Costa Rica", "Cuba",
-    "Dominican Republic", "Ecuador", "El Salvador", "Guatemala", "Honduras",
-    "Mexico", "Nicaragua", "Panama", "Paraguay", "Peru", "Uruguay", "Venezuela",
-    "MCO", "GSI", "PS",
-    "Google Compute Engine", "Google Cloud Networking", "SAP on Google Cloud",
-    "Google Cloud VMware Engine", "Google Distributed Cloud",
-    "Google Kubernetes Engine", "Apigee API Management",
-    "Cloud SQL", "AlloyDB for PostgreSQL", "Spanner", "Cloud Run", "Oracle",
-    "BigQuery", "Looker", "Dataflow", "Dataproc",
-    "Vertex AI Platform", "AI Applications", "Gemini Enterprise", "Customer Engagement Suite",
-    "Cloud Security", "Security Command Center", "Security Operations", "Google Threat Intelligence",
-    "Workspace",
+  const headersContext = [
+    "Partner Name", "Domain", 
     "Email To", "Email CC"
   ];
 
-  // Only set headers if empty to avoid overwriting user data
-  if (sheetPartners.getLastRow() === 0) {
-    sheetPartners.getRange(1, 1, 1, headersPartners.length)
-      .setValues([headersPartners])
+  if (sheetContext.getLastRow() === 0) {
+    sheetContext.getRange(1, 1, 1, headersContext.length)
+      .setValues([headersContext])
       .setBackground("#16a765")
       .setFontColor("white")
       .setFontWeight("bold");
-    sheetPartners.setFrozenRows(1);
-    sheetPartners.setFrozenColumns(2);
-
-    // Set Checkboxes for Boolean Columns (Cols 3 to 52)
-    // 3 = Managed Partner
-    // ... rest are flags
-    const range = sheetPartners.getRange(2, 3, sheetPartners.getMaxRows() - 1, 50);
-    const rule = SpreadsheetApp.newDataValidation().requireCheckbox().build();
-    range.setDataValidation(rule);
+    sheetContext.setFrozenRows(1);
+    sheetContext.setFrozenColumns(2);
   }
 
   // 2. Initialize DB_Reference
@@ -71,26 +51,33 @@ function initSystem() {
       .setBackground("#ea4335")
       .setFontColor("white")
       .setFontWeight("bold");
-    // Populate Default Reference Data? (Can be done later)
   }
 
-  Logger.log("System initialized: DB_Partners and DB_Reference ready.");
+  // 3. Initialize CACHE_Partner_Landscape
+  let sheetLandscape = ss.getSheetByName(SHEETS.CACHE_PARTNER_LANDSCAPE);
+  if (!sheetLandscape) {
+    sheetLandscape = ss.insertSheet(SHEETS.CACHE_PARTNER_LANDSCAPE);
+    sheetLandscape.setTabColor("4285f4"); // Blue for "Automated View"
+  }
+  // Headers for Landscape are dynamic/rebuilt daily, but we can init blank.
+  
+  Logger.log("System initialized: Managed Context & Reference ready.");
 }
 
 /**
- * Migrates data from Master Source to DB_Partners.
- * Only runs if DB_Partners is empty or explicit reset requested.
+ * Migrates data from Master Source to DB_Managed_Context.
+ * Minimal Import: Name, Domain, Emails.
  */
 function runMigration() {
-  initSystem(); // Ensure sheets exist
+  initSystem(); 
 
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const targetSheet = ss.getSheetByName(SHEETS.DB_PARTNERS);
+  const targetSheet = ss.getSheetByName(SHEETS.DB_MANAGED_CONTEXT);
 
-  // Safety check: Don't overwrite if data exists (unless we add a force flag later)
+  // Safety check
   if (targetSheet.getLastRow() > 1) {
     const ui = SpreadsheetApp.getUi();
-    const response = ui.alert('Migration Warning', 'DB_Partners already has data. This will APPEND data. Continue?', ui.ButtonSet.YES_NO);
+    const response = ui.alert('Migration Warning', 'DB_Managed_Context already has data. Append?', ui.ButtonSet.YES_NO);
     if (response !== ui.Button.YES) return;
   }
 
@@ -100,219 +87,161 @@ function runMigration() {
 
   const results = [];
 
-  // Skip header, map rows
   for (let i = 1; i < data.length; i++) {
     const row = data[i];
     const partnerName = row[33]; // AH
     const domain = row[34];      // AI
-
+    
     if (!partnerName || !domain) continue;
 
-    const newRow = new Array(53).fill(false); // 53 cols match header count
-    newRow[0] = partnerName;
-    newRow[1] = domain;
-    newRow[2] = true; // Managed Partner = TRUE (by default from Master)
-
-    // Country Logic (Indices sifted by +1 due to new Managed Flag)
-    // Legacy Mapping Logic
-    const regions = String(row[8] || "");
-    const solutions = String(row[12] || "");
-
-    // MCO/GSI/PS (Indices 22, 23, 24)
-    if (regions.includes("MCO")) newRow[22] = true;
-    if (regions.includes("GSI")) newRow[23] = true;
-    if (regions.includes("PS")) newRow[24] = true;
-
-    // Solution Aggregation mapping (Indices shifted +1 from previous V3)
-    if (solutions.includes("Infra")) [25, 26, 27, 28, 29].forEach(idx => newRow[idx] = true);
-    if (solutions.includes("App_Mod")) [30, 31].forEach(idx => newRow[idx] = true);
-    if (solutions.includes("DB")) [32, 33, 34, 35, 36].forEach(idx => newRow[idx] = true);
-    if (solutions.includes("Analytics")) [37, 38, 39, 40].forEach(idx => newRow[idx] = true);
-    if (solutions.includes("AI_ML")) [41, 42, 43, 44].forEach(idx => newRow[idx] = true);
-    if (solutions.includes("Security")) [45, 46, 47, 48].forEach(idx => newRow[idx] = true);
-    if (solutions.includes("GWS")) newRow[49] = true;
-
-    newRow[50] = row[35]; // AJ - Email To
-    newRow[51] = row[36]; // AK - Email CC
-
+    const newRow = [
+      partnerName,
+      domain,
+      row[35], // Email To
+      row[36]  // Email CC
+    ];
+    
     results.push(newRow);
   }
 
   if (results.length > 0) {
-    // Write starting at next available row
     const startRow = targetSheet.getLastRow() + 1;
     targetSheet.getRange(startRow, 1, results.length, results[0].length).setValues(results);
-
-    // Explicitly apply Checkbox validation to migrated boolean columns (Cols 3 to 52)
-    // Coincides with the range we just wrote
-    const boolRange = targetSheet.getRange(startRow, 3, results.length, 50);
-    const rule = SpreadsheetApp.newDataValidation().requireCheckbox().build();
-    boolRange.setDataValidation(rule);
   }
-
-  Logger.log(`Migration complete. ${results.length} partners imported into DB_Partners.`);
+  
+  Logger.log(`Migration complete. ${results.length} partners imported into DB_Managed_Context.`);
 }
 
 /**
- * Enriches DB_Partners with missing partners from BigQuery.
- * - Fetches ALL LATAM partners from BQ.
- * - Checks if Domain exists locally.
- * - Appends missing partners with Managed = FALSE.
+ * Rebuilds the Partner Landscape (CACHE_Partner_Landscape).
+ * - FEEDS inputs for "Managed" Partners from DB_Managed_Context.
+ * - JOINS with BigQuery for "Unmanaged" and Presence Flags.
+ * - OUTPUTS a single comprehensive table.
  */
-function syncBigQueryToLocalDB() {
+function rebuildPartnerLandscape() {
   initSystem();
-
+  
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName(SHEETS.DB_PARTNERS);
-  const existingData = sheet.getDataRange().getValues();
-
-  // 1. Build Local Domain Map (to check for existence)
-  const existingDomains = new Set();
-  // Start from row 2 (index 1)
-  for (let i = 1; i < existingData.length; i++) {
-    const domain = String(existingData[i][1]).toLowerCase().trim(); // Domain is Col index 1
-    if (domain) existingDomains.add(domain);
-  }
-
-  Logger.log(`[Enrichment] Found ${existingDomains.size} existing local domains.`);
-
-  // 2. Fetch All LATAM Partners from BQ
-  const sql = getAllLatamPartnersSql(); // Defined in BigQuery_Core.js
-  const bqData = executeBigQuery(sql);  // Defined in BigQuery_Core.js
-
-  if (!bqData || bqData.length <= 1) {
-    Logger.log("[Enrichment] No data returned from BigQuery.");
-    return;
-  }
-
-  // 3. Filter New Partners
-  const newRows = [];
-  // BQ Columns: domain, partner_name, residing_country
-  // BQ Data starts at index 1 (headers at 0)
-
-  for (let i = 1; i < bqData.length; i++) {
-    const row = bqData[i];
-    const domain = String(row[0]).toLowerCase().trim();
-    const name = row[1];
-    const country = row[2];
-
-    if (domain && !existingDomains.has(domain)) {
-      // Create new row structure matching DB_Partners (52 cols)
-      const newRow = new Array(52).fill(false);
-      newRow[0] = name;
-      newRow[1] = domain;
-      newRow[2] = false; // Managed Partner = FALSE
-
-      // Map Country to Column
-      // Headers: ["Partner Name", "Domain", "Managed Partner", "Argentina", ...]
-      // Argentina is at index 3
-      const countryMap = {
-        'Argentina': 3, 'Bolivia': 4, 'Brazil': 5, 'Chile': 6, 'Colombia': 7,
-        'Costa Rica': 8, 'Cuba': 9, 'Dominican Republic': 10, 'Ecuador': 11,
-        'El Salvador': 12, 'Guatemala': 13, 'Honduras': 14, 'Mexico': 15,
-        'Nicaragua': 16, 'Panama': 17, 'Paraguay': 18, 'Peru': 19,
-        'Uruguay': 20, 'Venezuela': 21
-      };
-
-      if (countryMap[country]) {
-        newRow[countryMap[country]] = true;
-      }
-
-      newRows.push(newRow);
-      existingDomains.add(domain); // Prevent duplicates within the same batch
+  
+  // 1. Read Managed Context
+  const sheetContext = ss.getSheetByName(SHEETS.DB_MANAGED_CONTEXT);
+  const contextData = sheetContext.getDataRange().getValues();
+  const managedMap = new Map(); // Domain -> {Name, EmailTo, EmailCC}
+  
+  // Skip header, store Managed info
+  for (let i = 1; i < contextData.length; i++) {
+    const domain = String(contextData[i][1]).toLowerCase().trim();
+    if(domain) {
+      managedMap.set(domain, {
+        name: contextData[i][0],
+        emailTo: contextData[i][2],
+        emailCC: contextData[i][3]
+      });
     }
   }
 
-  // 4. Append to Sheet
-  if (newRows.length > 0) {
-    const startRow = sheet.getLastRow() + 1;
-    const range = sheet.getRange(startRow, 1, newRows.length, 52);
-    range.setValues(newRows);
+  // 2. Fetch BigQuery Data (All Latam + Countries)
+  // We need a combined query: Get All Partners + Their Countries
+  const sql = getPartnerCountryPresenceSql(); 
+  // NOTE: getPartnerCountryPresenceSql returns [Domain, CountryArray]. 
+  // We also need Partner Name for unmanaged ones. 
+  // Let's rely on BQ for unmanaged names, but prefer Managed Context name if exists.
+  
+  // Update: We need modified SQL or logic to separate "Name" fetching if not in presence SQL.
+  // Actually, let's use `getAllLatamPartnersSql` which gives [Domain, Name, Country] (flattened).
+  // We can aggregate locally to avoid complex array logic in SQL.
+  
+  const rawBqData = executeBigQuery(getAllLatamPartnersSql()); // [Domain, Name, Country]
+  if (!rawBqData) return;
 
-    // Apply Checkboxes to new boolean cells (Cols 3 to 52)
-    const boolRange = sheet.getRange(startRow, 3, newRows.length, 50);
-    const rule = SpreadsheetApp.newDataValidation().requireCheckbox().build();
-    boolRange.setDataValidation(rule);
-
-    Logger.log(`[Enrichment] Added ${newRows.length} new non-managed partners from BigQuery.`);
-  } else {
-    Logger.log("[Enrichment] All BigQuery partners are already in local DB.");
-  }
-}
-
-/**
- * Updates Country Columns (3-21) based on Profile Presence in BigQuery.
- * - Fetches mapping of Domain -> [Countries] from BQ.
- * - Updates ALL rows in DB_Partners (Managed & Unmanaged).
- * - Sets cell to TRUE if profiles exist. Does NOT set to FALSE (preserving manual intent if needed, though usually overwrites).
- */
-function enrichPartnerCountries() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName(SHEETS.DB_PARTNERS);
-  const data = sheet.getDataRange().getValues();
-
-  // 1. Fetch Presence Data from BQ
-  const sql = getPartnerCountryPresenceSql();
-  const bqData = executeBigQuery(sql);
-
-  if (!bqData || bqData.length <= 1) {
-    Logger.log("[Country Sync] No data returned from BigQuery.");
-    return;
-  }
-
-  // 2. Build Lookup Map: Domain -> Set(Countries)
-  const presenceMap = new Map();
-  for (let i = 1; i < bqData.length; i++) {
-    const domain = String(bqData[i][0]).toLowerCase().trim();
-    // BQ ARRAY_AGG returns value as string if flattened? Or object? 
-    // In Apps Script BQ advanced service, Arrays come as arrays.
-    // However, if we used GROUP BY, we need to be careful.
-    // Let's assume standard array return.
-    let countries = bqData[i][1];
-    if (!countries) continue;
-
-    // If it comes as string "['Argentina', 'Brazil']", parse it? 
-    // Usually BQ API returns actual Array object.
-    // We'll treat it as array.
-    presenceMap.set(domain, new Set(countries));
-  }
-
-  // 3. Update Local Data
-  // Country Columns Indices: Argentina(3) to Venezuela(21)
-  const countryHeaderMap = {
-    'Argentina': 3, 'Bolivia': 4, 'Brazil': 5, 'Chile': 6, 'Colombia': 7,
-    'Costa Rica': 8, 'Cuba': 9, 'Dominican Republic': 10, 'Ecuador': 11,
-    'El Salvador': 12, 'Guatemala': 13, 'Honduras': 14, 'Mexico': 15,
-    'Nicaragua': 16, 'Panama': 17, 'Paraguay': 18, 'Peru': 19,
-    'Uruguay': 20, 'Venezuela': 21
-  };
-
-  const updates = [];
-
-  for (let i = 1; i < data.length; i++) {
-    const row = data[i];
-    const domain = String(row[1]).toLowerCase().trim();
-
-    if (presenceMap.has(domain)) {
-      const activeCountries = presenceMap.get(domain);
-
-      // Update specific cells in this row
-      // We need to return the whole row or update ranges?
-      // Updating ranges is slow in loop. Better to update `data` array and write back in bulk.
-
-      for (const [country, colIndex] of Object.entries(countryHeaderMap)) {
-        if (activeCountries.has(country)) {
-          row[colIndex] = true;
-        }
-      }
+  // 3. Process & Merge
+  // Map: Domain -> { BQ_Name, Set(Countries) }
+  const bqMap = new Map();
+  
+  for (let i = 1; i < rawBqData.length; i++) {
+    const domain = String(rawBqData[i][0]).toLowerCase().trim();
+    const name = rawBqData[i][1];
+    const country = rawBqData[i][2];
+    
+    if (!bqMap.has(domain)) {
+      bqMap.set(domain, { name: name, countries: new Set() });
     }
-    updates.push(row);
+    bqMap.get(domain).countries.add(country);
   }
-
-  // 4. Write Updates Back in Bulk
-  if (updates.length > 0) {
-    // Write everything from row 2
-    sheet.getRange(2, 1, updates.length, updates[0].length).setValues(updates);
-    Logger.log(`[Country Sync] Updated presence flags for ${updates.length} partners.`);
+  
+  // 4. Construct Landscape Table
+  // Schema: Partner Name, Domain, Managed(T/F), EmailTo, EmailCC, [Countries...]
+  
+  // Countries Header Map
+  const countryList = [
+    'Argentina', 'Bolivia', 'Brazil', 'Chile', 'Colombia', 
+    'Costa Rica', 'Cuba', 'Dominican Republic', 'Ecuador', 
+    'El Salvador', 'Guatemala', 'Honduras', 'Mexico', 
+    'Nicaragua', 'Panama', 'Paraguay', 'Peru', 
+    'Uruguay', 'Venezuela'
+  ];
+  
+  const headers = [
+    "Partner Name", "Domain", "Managed Partner", "Email To", "Email CC", ...countryList
+  ];
+  
+  const finalRows = [];
+  
+  // Set of all domains (Managed + BQ)
+  const allDomains = new Set([...managedMap.keys(), ...bqMap.keys()]);
+  
+  const sortedDomains = Array.from(allDomains).sort();
+  
+  for (const domain of sortedDomains) {
+    const isManaged = managedMap.has(domain);
+    const managedInfo = managedMap.get(domain) || {};
+    const bqInfo = bqMap.get(domain) || { name: "Unknown", countries: new Set() };
+    
+    // Prefer Managed Name, fallback to BQ Name
+    const displayName = isManaged ? managedInfo.name : bqInfo.name;
+    
+    const row = [
+      displayName,
+      domain,
+      isManaged, // Managed Partner Flag
+      managedInfo.emailTo || "",
+      managedInfo.emailCC || ""
+    ];
+    
+    // Append Country Flags
+    for (const country of countryList) {
+      row.push(bqInfo.countries.has(country));
+    }
+    
+    finalRows.push(row);
   }
+  
+  // 5. Write to CACHE_Partner_Landscape
+  const sheetLandscape = ss.getSheetByName(SHEETS.CACHE_PARTNER_LANDSCAPE);
+  sheetLandscape.clear(); // Complete overwrite
+  
+  if (finalRows.length > 0) {
+    sheetLandscape.getRange(1, 1, 1, headers.length)
+      .setValues([headers])
+      .setBackground("#4285f4")
+      .setFontColor("white")
+      .setFontWeight("bold");
+      
+    sheetLandscape.getRange(2, 1, finalRows.length, headers.length).setValues(finalRows);
+    
+    // Format Checkboxes (Managed + Countries)
+    // Managed is Col 3. Countries start at Col 6.
+    // Let's just blindly format known boolean columns.
+    
+    // Col 3 (Managed)
+    sheetLandscape.getRange(2, 3, finalRows.length, 1).setDataValidation(SpreadsheetApp.newDataValidation().requireCheckbox().build());
+    
+    // Cols 6 to End (Countries)
+    sheetLandscape.getRange(2, 6, finalRows.length, countryList.length).setDataValidation(SpreadsheetApp.newDataValidation().requireCheckbox().build());
+    
+    sheetLandscape.setFrozenRows(1);
+    sheetLandscape.setFrozenColumns(2);
+  }
+  
+  Logger.log(`[Landscape] Rebuilt with ${finalRows.length} partners.`);
 }

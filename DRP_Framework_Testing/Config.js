@@ -27,15 +27,16 @@ const PARTNER_FOLDER_ID = "1d8b3BxpFl79BoeriES2MSsS1GAmY1STq";
 // Sheet Names (Internal)
 const SHEETS = {
   // Managed Sources (User Edits These)
-  DB_PARTNERS: "DB_Partners",
+  DB_MANAGED_CONTEXT: "DB_Managed_Context", // Was DB_Partners
   DB_REFERENCE: "DB_Reference",
 
   // Automated Caches (Read-Only, Rebuilt Daily)
+  CACHE_PARTNER_LANDSCAPE: "CACHE_Partner_Landscape", // The new Master View
   CACHE_SCORING: "CACHE_Scoring",
   CACHE_DEEPDIVE: "CACHE_DeepDive",
 
-  // Legacy / Temp definitions (to be phased out or mapped)
-  SOURCE: "DB_Partners", // Mapping old 'SOURCE' to new 'DB_PARTNERS' for compatibility
+  // Legacy Mapping (for compatibility during refactor)
+  DB_PARTNERS: "DB_Managed_Context"
 };
 
 // Column Mappings (Refined for Local_Partner_DB)
