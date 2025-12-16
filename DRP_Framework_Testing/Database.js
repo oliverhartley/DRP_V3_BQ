@@ -142,6 +142,12 @@ function runMigration() {
     // Write starting at next available row
     const startRow = targetSheet.getLastRow() + 1;
     targetSheet.getRange(startRow, 1, results.length, results[0].length).setValues(results);
+
+    // Explicitly apply Checkbox validation to migrated boolean columns (Cols 3 to 52)
+    // Coincides with the range we just wrote
+    const boolRange = targetSheet.getRange(startRow, 3, results.length, 50);
+    const rule = SpreadsheetApp.newDataValidation().requireCheckbox().build();
+    boolRange.setDataValidation(rule);
   }
 
   Logger.log(`Migration complete. ${results.length} partners imported into DB_Partners.`);
