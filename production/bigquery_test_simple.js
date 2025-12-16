@@ -1,0 +1,261 @@
+
+function testSimpleQuery() {
+  const PROJECT_ID = 'concord-prod'; // Assuming this is correct from context
+  const SQL_QUERY = `SELECT 1 as test_col`;
+  try {
+    const request = { query: SQL_QUERY, useLegacySql: false };
+    const queryResults = BigQuery.Jobs.query(request, PROJECT_ID);
+    Logger.log("Test Query Success: " + JSON.stringify(queryResults.rows));
+  } catch (e) {
+    Logger.log("Test Query Failed: " + e.toString());
+  }
+}
+
+function testVirtualTableQuery() {
+  const PROJECT_ID = 'concord-prod';
+  const VIRTUAL_TABLE_DATA = "STRUCT('@test.com' AS domain, true AS is_gsi)";
+  const SQL_QUERY = `
+    WITH Spreadsheet_Data AS ( SELECT * FROM UNNEST([ ${VIRTUAL_TABLE_DATA} ]) )
+    SELECT * FROM Spreadsheet_Data
+  `;
+  try {
+    const request = { query: SQL_QUERY, useLegacySql: false };
+    const queryResults = BigQuery.Jobs.query(request, PROJECT_ID);
+    Logger.log("Virtual Table Query Success: " + JSON.stringify(queryResults.rows));
+  } catch (e) {
+    Logger.log("Virtual Table Query Failed: " + e.toString());
+  }
+}
+
+function testComplexQuery() {
+  const PROJECT_ID = 'concord-prod';
+  const SQL_QUERY = `
+    WITH DummyData AS (
+      SELECT 'p1' as partner_id, 'c1' as country, 'prof1' as profile_id
+      UNION ALL SELECT 'p1', 'c1', 'prof2'
+      UNION ALL SELECT 'p1', 'c2', 'prof3'
+      UNION ALL SELECT 'p2', 'c1', 'prof4'
+    ),
+    ProfileBreakdown AS (
+      SELECT 
+        partner_id,
+        STRING_AGG(CONCAT(country, ':', CAST(count AS STRING)), '|') as breakdown
+      FROM (
+        SELECT partner_id, country, COUNT(DISTINCT profile_id) as count
+        FROM DummyData
+        GROUP BY partner_id, country
+      ) AS sub
+      GROUP BY partner_id
+    )
+    SELECT * FROM ProfileBreakdown
+  `;
+  try {
+    const request = { query: SQL_QUERY, useLegacySql: false };
+    const queryResults = BigQuery.Jobs.query(request, PROJECT_ID);
+    Logger.log("Complex Query Success: " + JSON.stringify(queryResults.rows));
+  } catch (e) {
+    Logger.log("Complex Query Failed: " + e.toString());
+  }
+}
+
+function testCteStructure() {
+  const PROJECT_ID = 'concord-prod';
+  const SQL_QUERY = `
+    WITH DummyData AS (
+      SELECT 'p1' as partner_id, 'c1' as country, 'prof1' as profile_id
+      UNION ALL SELECT 'p1', 'c1', 'prof2'
+      UNION ALL SELECT 'p1', 'c2', 'prof3'
+      UNION ALL SELECT 'p2', 'c1', 'prof4'
+    ),
+    Prep AS (
+      SELECT partner_id, country, COUNT(DISTINCT profile_id) as count
+      FROM DummyData
+      GROUP BY partner_id, country
+    ),
+    Breakdown AS (
+      SELECT partner_id, STRING_AGG(CONCAT(country, ':', CAST(count AS STRING)), '|') as breakdown
+      FROM Prep
+      GROUP BY partner_id
+    )
+    SELECT * FROM Breakdown
+  `;
+  try {
+    const request = { query: SQL_QUERY, useLegacySql: false };
+    const queryResults = BigQuery.Jobs.query(request, PROJECT_ID);
+    Logger.log("CTE Structure Success: " + JSON.stringify(queryResults.rows));
+  } catch (e) {
+    Logger.log("CTE Structure Failed: " + e.toString());
+  }
+}
+
+function testDomainMatching() {
+  const PROJECT_ID = 'concord-prod';
+  const SQL_QUERY = `
+    WITH Spreadsheet_Data AS (
+      SELECT * FROM UNNEST([
+        STRUCT('accenture.com' AS domain),
+        STRUCT('capgemini.com' AS domain),
+        STRUCT('deloitte.com' AS domain)
+      ])
+    )
+    SELECT 
+      (SELECT COUNT(*) FROM \`concord-prod.service_partnercoe.drp_partner_master\`) as total_rows,
+      t1.partner_name,
+      bq_domain
+    FROM \`concord-prod.service_partnercoe.drp_partner_master\` AS t1
+    CROSS JOIN UNNEST(t1.partner_details.email_domain) AS bq_domain
+    LIMIT 10
+  `;
+  try {
+    const request = { query: SQL_QUERY, useLegacySql: false };
+    const queryResults = BigQuery.Jobs.query(request, PROJECT_ID);
+    Logger.log("Domain Matching Success: " + JSON.stringify(queryResults.rows));
+  } catch (e) {
+    Logger.log("Domain Matching Failed: " + e.toString());
+  }
+}
+
+function diagnosticBQ() {
+  const PROJECT_ID = 'concord-prod';
+  const queries = [
+    "SELECT COUNT(*) as count FROM `concord-prod.service_partnercoe.drp_partner_master`",
+    "SELECT partner_name FROM `concord-prod.service_partnercoe.drp_partner_master` LIMIT 5",
+    "SELECT t1.partner_name, bq_domain FROM `concord-prod.service_partnercoe.drp_partner_master` AS t1, UNNEST(t1.partner_details.email_domain) AS bq_domain LIMIT 5"
+  ];
+  queries.forEach((sql, index) => {
+    try {
+      const request = { query: sql, useLegacySql: false };
+      const results = BigQuery.Jobs.query(request, PROJECT_ID);
+      Logger.log(`Query ${index + 1} Success: ` + JSON.stringify(results.rows));
+    } catch (e) {
+      Logger.log(`Query ${index + 1} Failed: ` + e.toString());
+    }
+  });
+}
+
+function testAccentureProfileCount() {
+  const PROJECT_ID = 'concord-prod';
+  const SQL_QUERY = `
+    SELECT COUNT(DISTINCT t1.profile_details.profile_id) as unique_profiles
+    FROM \`concord-prod.service_partnercoe.drp_partner_master\` AS t1,
+    UNNEST(t1.partner_details.email_domain) AS bq_domain
+    WHERE REGEXP_REPLACE(TRIM(LOWER(bq_domain)), r'^@', '') = 'accenture.com'
+    AND t1.profile_details.residing_country IN ('Argentina', 'Bolivia', 'Brazil', 'Chile', 'Colombia', 'Costa Rica', 'Cuba', 'Dominican Republic', 'Ecuador', 'El Salvador', 'Guatemala', 'Honduras', 'Mexico', 'Nicaragua', 'Panama', 'Paraguay', 'Peru', 'Uruguay', 'Venezuela')
+  `;
+  try {
+    const request = { query: SQL_QUERY, useLegacySql: false };
+    const results = BigQuery.Jobs.query(request, PROJECT_ID);
+    Logger.log("Accenture Profile Count: " + JSON.stringify(results.rows));
+  } catch (e) {
+    Logger.log("Accenture Profile Count Failed: " + e.toString());
+  }
+}
+
+function testAccentureProfileData() {
+  const PROJECT_ID = 'concord-prod';
+  const DESTINATION_SS_ID = "1i_C2AdhnxqPqEAQrr3thhJGK_3cwXJhRrmnXQpPvtD0"; // From Config.gs
+  const SQL_QUERY = `
+    SELECT 
+      t1.partner_name,
+      t1.profile_details.profile_id,
+      t1.profile_details.residing_country,
+      bq_domain
+    FROM \`concord-prod.service_partnercoe.drp_partner_master\` AS t1,
+    UNNEST(t1.partner_details.email_domain) AS bq_domain
+    WHERE REGEXP_REPLACE(TRIM(LOWER(bq_domain)), r'^@', '') = 'accenture.com'
+    AND t1.profile_details.residing_country IN ('Argentina', 'Bolivia', 'Brazil', 'Chile', 'Colombia', 'Costa Rica', 'Cuba', 'Dominican Republic', 'Ecuador', 'El Salvador', 'Guatemala', 'Honduras', 'Mexico', 'Nicaragua', 'Panama', 'Paraguay', 'Peru', 'Uruguay', 'Venezuela')
+  `;
+  try {
+    const request = { query: SQL_QUERY, useLegacySql: false };
+    const results = BigQuery.Jobs.query(request, PROJECT_ID);
+    if (!results.rows || results.rows.length === 0) {
+      Logger.log("No data found.");
+      return;
+    }
+    const ss = SpreadsheetApp.openById(DESTINATION_SS_ID);
+    let sheet = ss.getSheetByName("Accenture_Test");
+    if (!sheet) {
+      sheet = ss.insertSheet("Accenture_Test");
+    } else {
+      sheet.clear();
+    }
+    const headers = results.schema.fields.map(f => f.name);
+    const data = [headers];
+    results.rows.forEach(row => {
+      data.push(row.f.map(field => field.v));
+    });
+    sheet.getRange(1, 1, data.length, data[0].length).setValues(data);
+    Logger.log("Data written to Accenture_Test sheet.");
+  } catch (e) {
+    Logger.log("Accenture Profile Data Failed: " + e.toString());
+  }
+}
+
+function testAccentureDeckGeneration() {
+  const partnerName = "Accenture";
+  try {
+    Logger.log(`Starting deck generation for ${partnerName}...`);
+    // This calls the actual function from Partner_Individual_Decks.js
+    const result = generateDeckForPartner(partnerName);
+    if (result) {
+      Logger.log(`Deck generated successfully: ${result.url}`);
+    } else {
+      Logger.log("Deck generation returned null. Check if partner exists in Score Matrix.");
+    }
+  } catch (e) {
+    Logger.log(`Error generating deck: ${e.toString()}`);
+  }
+}
+
+function testLatamProfiles() {
+  const PROJECT_ID = 'concord-prod';
+  const SQL_QUERY = `
+    SELECT 
+      t1.partner_name,
+      t1.profile_details.residing_country,
+      bq_domain
+    FROM \`concord-prod.service_partnercoe.drp_partner_master\` AS t1,
+    UNNEST(t1.partner_details.email_domain) AS bq_domain
+    WHERE REGEXP_REPLACE(TRIM(LOWER(bq_domain)), r'^@', '') IN ('accenture.com', 'capgemini.com', 'deloitte.com')
+    AND t1.profile_details.residing_country IN ('Argentina', 'Bolivia', 'Brazil', 'Chile', 'Colombia', 'Costa Rica', 'Cuba', 'Dominican Republic', 'Ecuador', 'El Salvador', 'Guatemala', 'Honduras', 'Mexico', 'Nicaragua', 'Panama', 'Paraguay', 'Peru', 'Uruguay', 'Venezuela')
+    LIMIT 10
+  `;
+  try {
+    const request = { query: SQL_QUERY, useLegacySql: false };
+    const results = BigQuery.Jobs.query(request, PROJECT_ID);
+    Logger.log("LATAM Profiles Success: " + JSON.stringify(results.rows));
+  } catch (e) {
+    Logger.log("LATAM Profiles Failed: " + e.toString());
+  }
+}
+
+function testSpreadsheetData() {
+  const SOURCE_SS_ID = "1XUVbK_VsV-9SsUzfp8YwUF2zJr3rMQ1ANJyQWdtagos";
+  const SHEET_NAME_SOURCE = "Consolidate by Partner";
+  const DOMAIN_START_ROW = 3;
+  const COL_MAP_DOMAIN = 34; // Column AI
+
+  try {
+    const ss = SpreadsheetApp.openById(SOURCE_SS_ID);
+    const sheet = ss.getSheetByName(SHEET_NAME_SOURCE);
+    if (!sheet) {
+      Logger.log("Error: Sheet not found: " + SHEET_NAME_SOURCE);
+      return;
+    }
+    const lastRow = sheet.getLastRow();
+    Logger.log("Last Row: " + lastRow);
+    if (lastRow < DOMAIN_START_ROW) {
+      Logger.log("No data rows.");
+      return;
+    }
+    const range = sheet.getRange(DOMAIN_START_ROW, 1, Math.min(10, lastRow - DOMAIN_START_ROW + 1), 35);
+    const values = range.getValues();
+    Logger.log("Read " + values.length + " rows.");
+    for (let i = 0; i < values.length; i++) {
+      const domain = values[i][COL_MAP_DOMAIN];
+      Logger.log(`Row ${i + DOMAIN_START_ROW}: Domain='${domain}'`);
+    }
+  } catch (e) {
+    Logger.log("Error reading spreadsheet: " + e.toString());
+  }
+}

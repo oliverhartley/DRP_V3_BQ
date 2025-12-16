@@ -1,0 +1,106 @@
+/**
+ * ****************************************
+ * Google Apps Script - Profile Deep Dive (SQL Source)
+ * File: Profile_DeepDive.gs
+ * Version: 2.9 (Proven Join Structure)
+ * ****************************************
+ */
+
+// NOTE: Uses Global Constants from Config.gs
+const SHEET_NAME_DEEPDIVE_SOURCE = "TEST_DeepDive_Data";
+
+function runDeepDiveQuerySource() {
+  Logger.log(`1. Generating Virtual Table for ALL Partners...`);
+  const VIRTUAL_TABLE_DATA = getDeepDiveSpreadsheetData();
+  if (!VIRTUAL_TABLE_DATA) return;
+
+  Logger.log("2. Constructing Deep Dive SQL (Batch Mode)...");
+
+  const SQL_QUERY = `
+    WITH Spreadsheet_Data AS (
+      SELECT * FROM UNNEST([ ${VIRTUAL_TABLE_DATA} ])
+    ),
+    RawProfileData AS (
+      SELECT
+        t1.partner_name,
+        t1.profile_details.profile_id,
+        t1.profile_details.residing_country,
+        t1.profile_details.job_title,
+        scores.scored_product,
+        scores.score,
+        
+        CASE
+          WHEN scores.score >= 50 THEN 'Tier 1'
+          WHEN scores.score BETWEEN 35 AND 49 THEN 'Tier 2'
+          WHEN scores.score BETWEEN 20 AND 34 THEN 'Tier 3'
+          WHEN scores.score < 20 THEN 'Tier 4'
+          ELSE 'No Tier'
+        END AS practitioner_tier,
+
+        CASE
+          WHEN scores.scored_product IN ('Google Compute Engine', 'Google Cloud Networking', 'SAP on Google Cloud', 'Google Cloud VMware Engine', 'Google Distributed Cloud') THEN 'Infrastructure Modernization'
+          WHEN scores.scored_product IN ('Google Kubernetes Engine', 'Apigee API Management') THEN 'Application Modernization'
+          WHEN scores.scored_product IN ('Cloud SQL', 'AlloyDB for PostgreSQL', 'Spanner', 'Cloud Run', 'Oracle') THEN 'Databases'
+          WHEN scores.scored_product IN ('BigQuery', 'Looker', 'Dataflow', 'Dataproc') THEN 'Data & Analytics'
+          WHEN scores.scored_product IN ('Vertex AI Platform', 'AI Applications', 'Gemini Enterprise', 'Customer Engagement Suite') THEN 'Artificial Intelligence'
+          WHEN scores.scored_product IN ('Cloud Security', 'Security Command Center', 'Security Operations', 'Google Threat Intelligence') THEN 'Security'
+          WHEN scores.scored_product = 'Workspace' THEN 'Workspace'
+          ELSE 'Other'
+        END AS scored_solution
+
+      FROM
+        \`concord-prod.service_partnercoe.drp_partner_master\` AS t1
+      CROSS JOIN UNNEST(t1.partner_details.email_domain) AS bq_domain
+      LEFT JOIN Spreadsheet_Data AS sheet
+        ON REGEXP_REPLACE(TRIM(LOWER(bq_domain)), r'^@', '') = REGEXP_REPLACE(TRIM(LOWER(sheet.domain)), r'^@', '')
+      LEFT JOIN UNNEST(t1.profile_details.score_details) AS scores
+      WHERE
+        t1.profile_details.residing_country IN ('Argentina', 'Bolivia', 'Brazil', 'Chile', 'Colombia', 'Costa Rica', 'Cuba', 'Dominican Republic', 'Ecuador', 'El Salvador', 'Guatemala', 'Honduras', 'Mexico', 'Nicaragua', 'Panama', 'Paraguay', 'Peru', 'Uruguay', 'Venezuela')
+        AND sheet.domain IS NOT NULL
+    )
+    SELECT * FROM RawProfileData
+    ORDER BY partner_name, profile_id, scored_solution, score DESC
+    LIMIT 50000 
+  `;
+
+  Logger.log("3. Executing BigQuery Job...");
+  Logger.log("SQL Query: " + SQL_QUERY); // Added logging
+  const request = { query: SQL_QUERY, useLegacySql: false };
+  const queryResults = BigQuery.Jobs.query(request, PROJECT_ID);
+
+  if (!queryResults.rows || queryResults.rows.length === 0) { Logger.log("No data found."); return; }
+
+  const ss = SpreadsheetApp.openById(DESTINATION_SS_ID);
+  let sheet = ss.getSheetByName(SHEET_NAME_DEEPDIVE_SOURCE);
+  if (!sheet) { sheet = ss.insertSheet(SHEET_NAME_DEEPDIVE_SOURCE); }
+  sheet.clear();
+
+  const headers = queryResults.schema.fields.map(f => f.name);
+  const rows = queryResults.rows.map(row => row.f.map(cell => (cell.v === null) ? "" : cell.v));
+
+  sheet.getRange(1, 1, 1, headers.length).setValues([headers]).setFontWeight("bold");
+  sheet.getRange(2, 1, rows.length, rows[0].length).setValues(rows);
+  Logger.log(`SUCCESS! Loaded ${rows.length} rows.`);
+}
+
+function getDeepDiveSpreadsheetData() {
+  const ss = SpreadsheetApp.openById(SOURCE_SS_ID);
+  const sheet = ss.getSheetByName(SHEET_NAME_SOURCE);
+  if (!sheet) throw new Error(`Sheet "${SHEET_NAME_SOURCE}" not found in Source Spreadsheet.`);
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return ""; // Assuming start row is 2
+  const range = sheet.getRange(2, 1, lastRow - 2 + 1, 2); // Only need name and domain
+  const values = range.getValues();
+  const textStyles = sheet.getRange(2, 1, lastRow - 2 + 1, 1).getTextStyles();
+  let structList = [];
+  for (let i = 0; i < values.length; i++) {
+    const row = values[i];
+    if (textStyles[i][0].isStrikethrough()) continue;
+    let domain = String(row[1]).toLowerCase().trim().replace(/[\x00-\x1F\x7F-\x9F\u200B]/g, ""); // Domain is column index 1
+    if (domain && !domain.includes('#n/a')) {
+      const escapedDomain = domain.replace(/'/g, "\\'");
+      structList.push(`STRUCT('${escapedDomain}' AS domain)`);
+    }
+  }
+  return structList.join(',\n');
+}
