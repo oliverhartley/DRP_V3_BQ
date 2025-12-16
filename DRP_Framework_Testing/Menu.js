@@ -22,8 +22,8 @@ function onOpen() {
       .addItem('✅ Setup Daily 1AM Sync', 'menuSetupTrigger')
       .addItem('❌ Remove All Triggers', 'menuRemoveTriggers'))
     .addSeparator()
-    .addItem('⚙️ System Migration (Master -> DB_Managed_Context)', 'runMigration')
-    .addItem('🔄 Rebuild Partner Landscape (Full View)', 'rebuildPartnerLandscape')
+    .addItem('⚙️ System Migration (Master -> DB_Managed_Context)', 'menuRunMigration')
+    .addItem('🔄 Rebuild Partner Landscape (Full View)', 'menuRebuildLandscape')
     .addToUi();
 }
 */
@@ -38,8 +38,8 @@ function menuInitSystem() {
 }
 
 // UI Route to modular local functions
-function runMigration() { Database.runMigration(); }
-function rebuildPartnerLandscape() { Database.rebuildPartnerLandscape(); }
+function menuRunMigration() { runMigration(); }
+function menuRebuildLandscape() { rebuildPartnerLandscape(); }
 function menuRefreshDB() { runBigQueryLoader(); }
 function menuRefreshScoring() { runScoringLoader(); }
 function menuRefreshDeepDive() { runDeepDiveLoader(); }
