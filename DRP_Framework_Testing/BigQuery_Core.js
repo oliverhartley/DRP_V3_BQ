@@ -180,3 +180,19 @@ function getPartnerSqlStruct() {
   
   return structs.join(',\n');
 }
+
+/**
+ * Builds SQL to fetch ALL LATAM partners (Managed + Unmanaged).
+ */
+function getAllLatamPartnersSql() {
+  return `
+    SELECT DISTINCT
+        REGEXP_REPLACE(TRIM(LOWER(t1.partner_details.email_domain[OFFSET(0)])), r'^@', '') AS domain,
+        t1.partner_name,
+        t1.profile_details.residing_country
+    FROM \`${PROJECT_ID}.service_partnercoe.drp_partner_master\` AS t1
+    WHERE t1.profile_details.residing_country IN ('Argentina', 'Bolivia', 'Brazil', 'Chile', 'Colombia', 'Costa Rica', 'Cuba', 'Dominican Republic', 'Ecuador', 'El Salvador', 'Guatemala', 'Honduras', 'Mexico', 'Nicaragua', 'Panama', 'Paraguay', 'Peru', 'Uruguay', 'Venezuela')
+    AND t1.partner_details.email_domain IS NOT NULL
+    AND ARRAY_LENGTH(t1.partner_details.email_domain) > 0
+  `;
+}

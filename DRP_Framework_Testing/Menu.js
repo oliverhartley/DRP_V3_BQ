@@ -21,6 +21,7 @@ function onOpen() {
       .addItem('❌ Remove All Triggers', 'menuRemoveTriggers'))
     .addSeparator()
     .addItem('⚙️ System Migration (Master -> Local)', 'runMigration')
+    .addItem('✨ Enrich from BigQuery (Add Missing)', 'syncBigQueryToLocalDB')
     .addToUi();
 }
 
