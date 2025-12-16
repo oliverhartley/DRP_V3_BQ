@@ -48,6 +48,13 @@ function initSystem() {
       .setFontWeight("bold");
     sheetPartners.setFrozenRows(1);
     sheetPartners.setFrozenColumns(2);
+
+    // Set Checkboxes for Boolean Columns (Cols 3 to 52)
+    // 3 = Managed Partner
+    // ... rest are flags
+    const range = sheetPartners.getRange(2, 3, sheetPartners.getMaxRows() - 1, 50);
+    const rule = SpreadsheetApp.newDataValidation().requireCheckbox().build();
+    range.setDataValidation(rule);
   }
 
   // 2. Initialize DB_Reference
@@ -213,7 +220,14 @@ function syncBigQueryToLocalDB() {
   // 4. Append to Sheet
   if (newRows.length > 0) {
     const startRow = sheet.getLastRow() + 1;
-    sheet.getRange(startRow, 1, newRows.length, 52).setValues(newRows);
+    const range = sheet.getRange(startRow, 1, newRows.length, 52);
+    range.setValues(newRows);
+
+    // Apply Checkboxes to new boolean cells (Cols 3 to 52)
+    const boolRange = sheet.getRange(startRow, 3, newRows.length, 50);
+    const rule = SpreadsheetApp.newDataValidation().requireCheckbox().build();
+    boolRange.setDataValidation(rule);
+
     Logger.log(`[Enrichment] Added ${newRows.length} new non-managed partners from BigQuery.`);
   } else {
     Logger.log("[Enrichment] All BigQuery partners are already in local DB.");
