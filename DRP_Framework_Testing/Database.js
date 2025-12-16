@@ -233,3 +233,80 @@ function syncBigQueryToLocalDB() {
     Logger.log("[Enrichment] All BigQuery partners are already in local DB.");
   }
 }
+
+/**
+ * Updates Country Columns (3-21) based on Profile Presence in BigQuery.
+ * - Fetches mapping of Domain -> [Countries] from BQ.
+ * - Updates ALL rows in DB_Partners (Managed & Unmanaged).
+ * - Sets cell to TRUE if profiles exist. Does NOT set to FALSE (preserving manual intent if needed, though usually overwrites).
+ */
+function enrichPartnerCountries() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(SHEETS.DB_PARTNERS);
+  const data = sheet.getDataRange().getValues();
+
+  // 1. Fetch Presence Data from BQ
+  const sql = getPartnerCountryPresenceSql();
+  const bqData = executeBigQuery(sql);
+
+  if (!bqData || bqData.length <= 1) {
+    Logger.log("[Country Sync] No data returned from BigQuery.");
+    return;
+  }
+
+  // 2. Build Lookup Map: Domain -> Set(Countries)
+  const presenceMap = new Map();
+  for (let i = 1; i < bqData.length; i++) {
+    const domain = String(bqData[i][0]).toLowerCase().trim();
+    // BQ ARRAY_AGG returns value as string if flattened? Or object? 
+    // In Apps Script BQ advanced service, Arrays come as arrays.
+    // However, if we used GROUP BY, we need to be careful.
+    // Let's assume standard array return.
+    let countries = bqData[i][1];
+    if (!countries) continue;
+
+    // If it comes as string "['Argentina', 'Brazil']", parse it? 
+    // Usually BQ API returns actual Array object.
+    // We'll treat it as array.
+    presenceMap.set(domain, new Set(countries));
+  }
+
+  // 3. Update Local Data
+  // Country Columns Indices: Argentina(3) to Venezuela(21)
+  const countryHeaderMap = {
+    'Argentina': 3, 'Bolivia': 4, 'Brazil': 5, 'Chile': 6, 'Colombia': 7,
+    'Costa Rica': 8, 'Cuba': 9, 'Dominican Republic': 10, 'Ecuador': 11,
+    'El Salvador': 12, 'Guatemala': 13, 'Honduras': 14, 'Mexico': 15,
+    'Nicaragua': 16, 'Panama': 17, 'Paraguay': 18, 'Peru': 19,
+    'Uruguay': 20, 'Venezuela': 21
+  };
+
+  const updates = [];
+
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    const domain = String(row[1]).toLowerCase().trim();
+
+    if (presenceMap.has(domain)) {
+      const activeCountries = presenceMap.get(domain);
+
+      // Update specific cells in this row
+      // We need to return the whole row or update ranges?
+      // Updating ranges is slow in loop. Better to update `data` array and write back in bulk.
+
+      for (const [country, colIndex] of Object.entries(countryHeaderMap)) {
+        if (activeCountries.has(country)) {
+          row[colIndex] = true;
+        }
+      }
+    }
+    updates.push(row);
+  }
+
+  // 4. Write Updates Back in Bulk
+  if (updates.length > 0) {
+    // Write everything from row 2
+    sheet.getRange(2, 1, updates.length, updates[0].length).setValues(updates);
+    Logger.log(`[Country Sync] Updated presence flags for ${updates.length} partners.`);
+  }
+}

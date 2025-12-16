@@ -22,6 +22,7 @@ function onOpen() {
     .addSeparator()
     .addItem('⚙️ System Migration (Master -> Local)', 'runMigration')
     .addItem('✨ Enrich from BigQuery (Add Missing)', 'syncBigQueryToLocalDB')
+    .addItem('🌍 Sync Country Presence (Profile Data)', 'enrichPartnerCountries')
     .addToUi();
 }
 
