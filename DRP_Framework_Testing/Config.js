@@ -32,6 +32,7 @@ const SHEETS = {
 
   // Automated Caches (Read-Only, Rebuilt Daily)
   CACHE_PARTNER_LANDSCAPE: "CACHE_Partner_Landscape", // The new Master View
+  CACHE_PROFILES: "CACHE_Profiles", // [NEW] Granular Profile DB
   CACHE_SCORING: "CACHE_Scoring",
   CACHE_DEEPDIVE: "CACHE_DeepDive",
 

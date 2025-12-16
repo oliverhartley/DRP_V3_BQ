@@ -24,6 +24,7 @@ function onOpen() {
     .addSeparator()
     .addItem('⚙️ System Migration (Master -> DB_Managed_Context)', 'menuRunMigration')
     .addItem('🔄 Rebuild Partner Landscape (Full View)', 'menuRebuildLandscape')
+    .addItem('👥 Build Profile DB (Granular View)', 'menuRunProfiles')
     .addToUi();
 }
 */
@@ -40,6 +41,7 @@ function menuInitSystem() {
 // UI Route to modular local functions
 function menuRunMigration() { runMigration(); }
 function menuRebuildLandscape() { rebuildPartnerLandscape(); }
+function menuRunProfiles() { runProfilesLoader(); }
 function menuRefreshDB() { runBigQueryLoader(); }
 function menuRefreshScoring() { runScoringLoader(); }
 function menuRefreshDeepDive() { runDeepDiveLoader(); }
