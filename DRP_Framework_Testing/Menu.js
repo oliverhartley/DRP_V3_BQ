@@ -1,76 +1,59 @@
 /**
  * ****************************************
- * Google Apps Script - Custom Menu
- * File: Menu.gs
- * Version: 12.0 (Added Locking System)
+ * Google Apps Script - User Interface
+ * File: Menu.js
+ * Description: Refresh of the dashboard menu and navigation.
  * ****************************************
  */
 
 function onOpen() {
   const ui = SpreadsheetApp.getUi();
-
-  ui.createMenu('🚀 Partner Engine')
-    .addItem('🔄 Full Data Update', 'runFullDataUpdate')
+  ui.createMenu('🚀 DRP Framework V3')
+    .addItem('1. Initialize Empty System', 'menuInitSystem')
     .addSeparator()
-      .addItem('1️⃣ Update Partner DB', 'runBigQueryQuery')
-      .addItem('2️⃣ Update Scoring Matrix', 'runPartnerScorePivot')
-      .addItem('3️⃣ Update Profile Source', 'runDeepDiveQuerySource')
-    .addItem('📊 Generate Q3 Report', 'runQ3Report')
-    .addItem('🐞 Debug Q3 Data', 'debugQ3Diagnostics')
-    .addItem('📅 Check Data Availability', 'checkDataAvailabilityForDates')
-    .addItem('📊 Calculate Performance Delta', 'calculatePerformanceDelta')
-    .addItem('🔄 Update Dashboard Cache', 'updateDashboardCache')
-      .addSeparator()
-      
-      .addSubMenu(ui.createMenu('📄 Generate Decks')
-          .addItem('⭐ MANAGED Partners', 'runManagedBatch')
-        .addItem('🌍 GSI Partners', 'runGSIBatch') // Added GSI
-          .addItem('📂 UNMANAGED Partners', 'runUnManagedBatch')
-          .addSeparator()
-          .addItem('🇧🇷 Brazil', 'runBrazilBatch')
-          .addItem('🇲🇽 Mexico', 'runMexicoBatch')
-        .addItem('🌎 MCO', 'runMCOBatch')
-        .addItem('💼 PS', 'runPSBatch'))
-          
-      .addSubMenu(ui.createMenu('🔒 Lock Decks')
-          .addItem('⭐ Lock MANAGED', 'lockManagedBatch')
-        .addItem('🌍 Lock GSI', 'lockGSIBatch') // Added GSI
-          .addItem('📂 Lock UNMANAGED', 'lockUnManagedBatch')
-          .addSeparator()
-          .addItem('🇧🇷 Lock Brazil', 'lockBrazilBatch')
-          .addItem('🇲🇽 Lock Mexico', 'lockMexicoBatch')
-        .addItem('🌎 Lock MCO', 'lockMCOBatch')
-        .addItem('💼 Lock PS', 'lockPSBatch'))
-      
-      .addSeparator()
-      .addItem('🔗 Refresh Links (Manual)', 'runLinkUpdateManual') 
-      .addItem('⚠️ Reset Dropdowns', 'setupDashboard')
-      .addItem('🕒 Timestamp', 'updateTimestamp')
-      .addToUi();
+    .addSubMenu(ui.createMenu('2. Data Operations')
+      .addItem('Refresh Partner DB (BQ)', 'menuRefreshDB')
+      .addItem('Refresh Scoring Matrix', 'menuRefreshScoring')
+      .addItem('Refresh Deep Dive Data', 'menuRefreshDeepDive')
+      .addItem('Run Full Update', 'menuFullUpdate'))
+    .addSubMenu(ui.createMenu('3. Automation & Triggers')
+      .addItem('✅ Setup Daily 1AM Sync', 'menuSetupTrigger')
+      .addItem('❌ Remove All Triggers', 'menuRemoveTriggers'))
+    .addSeparator()
+    .addItem('⚙️ System Migration (Master -> Local)', 'runMigration')
+    .addToUi();
 }
 
-// ... (Keep the rest of your Menu.gs functions: runLinkUpdateManual, updateTimestamp) ...
-// Make sure you keep the helper functions at the bottom of this file!
-function runLinkUpdateManual() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  try {
-    ss.toast("Scanning Drive for files...", "Update Started", 5);
-    const count = updateLinkCache(); 
-    ss.toast(`Found ${count} partner files. Slicer is ready.`, "Update Complete", 5);
-  } catch (e) {
-    SpreadsheetApp.getUi().alert("Error", e.toString(), SpreadsheetApp.getUi().ButtonSet.OK);
+/**
+ * UI Wrapper for Initialization
+ */
+function menuInitSystem() {
+  const ui = SpreadsheetApp.getUi();
+  const response = ui.alert('System Initialization', 'This will create/reset:\n1. DB_Partners (Managed)\n2. DB_Reference\n\nContinue?', ui.ButtonSet.YES_NO);
+
+  if (response == ui.Button.YES) {
+    initSystem();
+    ui.alert('Initialization complete. Please run "System Migration" next.');
   }
 }
 
-function updateTimestamp() {
-  try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const sheet = ss.getSheetByName(SHEET_NAME_DASHBOARD);
-    if (!sheet) return;
-    const now = new Date();
-    const timeString = "Last Data Refresh: " + Utilities.formatDate(now, ss.getSpreadsheetTimeZone(), "MM/dd/yyyy HH:mm");
-    const targetRange = sheet.getRange("E1:I1");
-    targetRange.merge().setValue(timeString).setBackground('#fff2cc').setFontColor('#666666').setHorizontalAlignment('right').setFontWeight('bold');
-    SpreadsheetApp.flush();
-  } catch (e) {}
+// UI Route to modular local functions
+function menuRefreshDB() { runBigQueryLoader(); }
+function menuRefreshScoring() { runScoringLoader(); }
+function menuRefreshDeepDive() { runDeepDiveLoader(); }
+function menuFullUpdate() { runDailySync(); } // Full Update = Daily Sync logic
+
+function menuSetupTrigger() {
+  setupDailySync();
+  SpreadsheetApp.getUi().alert("Daily 1AM Trigger Established.");
+}
+
+function menuRemoveTriggers() {
+  const triggers = ScriptApp.getProjectTriggers();
+  for (const t of triggers) ScriptApp.deleteTrigger(t);
+  SpreadsheetApp.getUi().alert("All triggers removed.");
+}
+
+function menuBatchEmail() {
+  SpreadsheetApp.getUi().alert("Batch Email logic not yet implemented in V3.");
 }
