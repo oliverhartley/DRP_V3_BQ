@@ -1,11 +1,13 @@
 /**
  * ****************************************
- * Google Apps Script - User Interface
+ * Google Apps Script - UI & Menu
  * File: Menu.js
- * Description: Refresh of the dashboard menu and navigation.
+ * Description: Application Entry Point & Custom Menu.
+ * NOTE: UI Disabled for Console-First Debugging.
  * ****************************************
  */
 
+/*
 function onOpen() {
   const ui = SpreadsheetApp.getUi();
   ui.createMenu('🚀 DRP Framework V3')
@@ -25,18 +27,15 @@ function onOpen() {
     .addItem('🌍 Sync Country Presence (Profile Data)', 'enrichPartnerCountries')
     .addToUi();
 }
+*/
 
 /**
  * UI Wrapper for Initialization
  */
 function menuInitSystem() {
-  const ui = SpreadsheetApp.getUi();
-  const response = ui.alert('System Initialization', 'This will create/reset:\n1. DB_Partners (Managed)\n2. DB_Reference\n\nContinue?', ui.ButtonSet.YES_NO);
-
-  if (response == ui.Button.YES) {
-    initSystem();
-    ui.alert('Initialization complete. Please run "System Migration" next.');
-  }
+  // Console Version
+  Logger.log("Running initSystem() from console...");
+  initSystem();
 }
 
 // UI Route to modular local functions
