@@ -35,9 +35,7 @@ function getProfilesSql() {
         t1.profile_details.residing_country
     FROM
         \`${PROJECT_ID}.service_partnercoe.drp_partner_master\` AS t1
-    WHERE
-        t1.profile_details.residing_country IN ('Argentina', 'Bolivia', 'Brazil', 'Chile', 'Colombia', 'Costa Rica', 'Cuba', 'Dominican Republic', 'Ecuador', 'El Salvador', 'Guatemala', 'Honduras', 'Mexico', 'Nicaragua', 'Panama', 'Paraguay', 'Peru', 'Uruguay', 'Venezuela')
-    ORDER BY 1, 3, 2
+    LIMIT 10
   `;
 }
 
