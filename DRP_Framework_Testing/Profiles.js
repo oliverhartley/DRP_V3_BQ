@@ -47,11 +47,10 @@ function getProfilesSql() {
             ELSE 'Other' 
         END AS scored_solution
     FROM
-        \`${PROJECT_ID}.service_partnercoe.drp_partner_master\` AS t1,
-        UNNEST(t1.profile_details.score_details) AS scores
+        \`${PROJECT_ID}.service_partnercoe.drp_partner_master\` AS t1
+        LEFT JOIN UNNEST(t1.profile_details.score_details) AS scores
     WHERE
         t1.profile_details.residing_country IN ('Argentina', 'Bolivia', 'Brazil', 'Chile', 'Colombia', 'Costa Rica', 'Cuba', 'Dominican Republic', 'Ecuador', 'El Salvador', 'Guatemala', 'Honduras', 'Mexico', 'Nicaragua', 'Panama', 'Paraguay', 'Peru', 'Uruguay', 'Venezuela')
-        AND scores.scored_product IS NOT NULL 
     ORDER BY 1, 3, 2
   `;
 }
