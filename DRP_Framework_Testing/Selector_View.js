@@ -197,6 +197,9 @@ function runSelectorBuilder() {
     viewSheet.setFrozenRows(startRow);
     viewSheet.autoResizeColumns(1, headers.length);
 
+    // FORCE FLUSH: Ensure data is written before Slicers try to read it.
+    SpreadsheetApp.flush();
+
     // 6. Add Slicers - Pre-configured
     const wholeRange = viewSheet.getRange(startRow, 1, finalRows.length + 1, headers.length);
     const defaultCriteria = SpreadsheetApp.newFilterCriteria().build();
