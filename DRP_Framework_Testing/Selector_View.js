@@ -198,28 +198,27 @@ function runSelectorBuilder() {
     viewSheet.autoResizeColumns(1, headers.length);
 
     // 6. Add Slicers (Native UI) - Positioned in Top Rows (1-5)
-    // Range must cover the data
     const wholeRange = viewSheet.getRange(startRow, 1, finalRows.length + 1, headers.length);
 
-    // Slicer 1: Country (Col 1)
-    const slicerCountry = viewSheet.insertSlicer(wholeRange, 2, 1); // Anchor Top-Left
-    slicerCountry.setPosition(2, 1, 0, 0);
-    slicerCountry.setTitle("Filter by Country");
+    // Slicer 1: Partner Name (Col 2)
+    const slicerPartner = viewSheet.insertSlicer(wholeRange, 2, 1); // Top-Left
+    slicerPartner.setPosition(2, 1, 0, 0);
+    slicerPartner.setTitle("Filter by Partner Name");
+    // Attempt to set default column by setting criteria (limitation: GAS often defaults to Col 1)
+    // We set criteria on Col 2
+    slicerPartner.setColumnFilterCriteria(2, null);
 
-    // Slicer 2: Product (Col 8)
-    const slicerProd = viewSheet.insertSlicer(wholeRange, 2, 3); // Anchor at C (~ pixel offset usually better but col works)
-    slicerProd.setPosition(2, 3, 50, 0); // Offset slightly
-    slicerProd.setTitle("Filter by Product");
-
-    // Slicer 3: Solution (Col 7)
-    const slicerSol = viewSheet.insertSlicer(wholeRange, 2, 6); // Anchor at F
-    slicerSol.setPosition(2, 6, 0, 0);
+    // Slicer 2: Solution (Col 7)
+    const slicerSol = viewSheet.insertSlicer(wholeRange, 2, 4); // Anchor at D
+    slicerSol.setPosition(2, 4, 0, 0);
     slicerSol.setTitle("Filter by Solution");
+    slicerSol.setColumnFilterCriteria(7, null);
 
-    // Slicer 4: Managed (Col 4)
-    const slicerManaged = viewSheet.insertSlicer(wholeRange, 2, 9); // Anchor at I
-    slicerManaged.setPosition(2, 9, 0, 0);
-    slicerManaged.setTitle("Filter by Managed");
+    // Slicer 3: Product (Col 8)
+    const slicerProd = viewSheet.insertSlicer(wholeRange, 2, 7); // Anchor at G
+    slicerProd.setPosition(2, 7, 0, 0);
+    slicerProd.setTitle("Filter by Product");
+    slicerProd.setColumnFilterCriteria(8, null);
   }
 
   Logger.log(`[Selector] Built with ${finalRows.length} rows and Slicers.`);
