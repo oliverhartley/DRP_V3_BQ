@@ -197,28 +197,27 @@ function runSelectorBuilder() {
     viewSheet.setFrozenRows(startRow);
     viewSheet.autoResizeColumns(1, headers.length);
 
-    // 6. Add Slicers (Native UI) - Positioned in Top Rows (1-5)
+    // 6. Add Slicers - Pre-configured
     const wholeRange = viewSheet.getRange(startRow, 1, finalRows.length + 1, headers.length);
+    const defaultCriteria = SpreadsheetApp.newFilterCriteria().build();
 
     // Slicer 1: Partner Name (Col 2)
-    const slicerPartner = viewSheet.insertSlicer(wholeRange, 2, 1); // Top-Left
+    const slicerPartner = viewSheet.insertSlicer(wholeRange, 2, 1); 
     slicerPartner.setPosition(2, 1, 0, 0);
     slicerPartner.setTitle("Filter by Partner Name");
-    // Attempt to set default column by setting criteria (limitation: GAS often defaults to Col 1)
-    // We set criteria on Col 2
-    slicerPartner.setColumnFilterCriteria(2, null);
+    slicerPartner.setColumnFilterCriteria(2, defaultCriteria);
 
     // Slicer 2: Solution (Col 7)
-    const slicerSol = viewSheet.insertSlicer(wholeRange, 2, 4); // Anchor at D
+    const slicerSol = viewSheet.insertSlicer(wholeRange, 7, 4); 
     slicerSol.setPosition(2, 4, 0, 0);
     slicerSol.setTitle("Filter by Solution");
-    slicerSol.setColumnFilterCriteria(7, null);
+    slicerSol.setColumnFilterCriteria(7, defaultCriteria);
 
     // Slicer 3: Product (Col 8)
-    const slicerProd = viewSheet.insertSlicer(wholeRange, 2, 7); // Anchor at G
+    const slicerProd = viewSheet.insertSlicer(wholeRange, 8, 7); 
     slicerProd.setPosition(2, 7, 0, 0);
     slicerProd.setTitle("Filter by Product");
-    slicerProd.setColumnFilterCriteria(8, null);
+    slicerProd.setColumnFilterCriteria(8, defaultCriteria);
   }
 
   Logger.log(`[Selector] Built with ${finalRows.length} rows and Slicers.`);
