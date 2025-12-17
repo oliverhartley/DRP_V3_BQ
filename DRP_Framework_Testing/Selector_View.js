@@ -177,47 +177,50 @@ function runSelectorBuilder() {
   for (const s of existingSlicers) s.remove();
 
   const headers = [
-    "Residing Country", "Partner Name", "Domain", "Managed", "Email To", "Email CC",
+    "Residing Country", "Partner Name", "Domain", "Managed", "Email To", "Email CC", 
     "Solution", "Product", 
     "Tier 1 (Experts)", "Tier 2", "Tier 3", "Tier 4", "Total Profiles"
   ];
 
+  // Start Table at Row 6
+  const startRow = 6;
+
   if (finalRows.length > 0) {
-    viewSheet.getRange(1, 1, 1, headers.length)
+    viewSheet.getRange(startRow, 1, 1, headers.length)
       .setValues([headers])
       .setBackground("#efefef")
       .setFontWeight("bold");
 
-    const dataRange = viewSheet.getRange(2, 1, finalRows.length, headers.length);
+    const dataRange = viewSheet.getRange(startRow + 1, 1, finalRows.length, headers.length);
     dataRange.setValues(finalRows);
 
-    viewSheet.setFrozenRows(1);
+    viewSheet.setFrozenRows(startRow);
     viewSheet.autoResizeColumns(1, headers.length);
 
-    // 6. Add Slicers
-    const wholeRange = viewSheet.getRange(1, 1, finalRows.length + 1, headers.length);
+    // 6. Add Slicers (Native UI) - Positioned in Top Rows (1-5)
+    // Range must cover the data
+    const wholeRange = viewSheet.getRange(startRow, 1, finalRows.length + 1, headers.length);
 
     // Slicer 1: Country (Col 1)
-    const slicerCountry = viewSheet.insertSlicer(wholeRange, 2, 1);
+    const slicerCountry = viewSheet.insertSlicer(wholeRange, 2, 1); // Anchor Top-Left
     slicerCountry.setPosition(2, 1, 0, 0);
     slicerCountry.setTitle("Filter by Country");
 
-    // Slicer 2: Managed (Col 4)
-    const slicerManaged = viewSheet.insertSlicer(wholeRange, 2, 4);
-    slicerManaged.setPosition(2, 4, 0, 0);
-    slicerManaged.setTitle("Filter by Managed Status");
+    // Slicer 2: Product (Col 8)
+    const slicerProd = viewSheet.insertSlicer(wholeRange, 2, 3); // Anchor at C (~ pixel offset usually better but col works)
+    slicerProd.setPosition(2, 3, 50, 0); // Offset slightly
+    slicerProd.setTitle("Filter by Product");
 
     // Slicer 3: Solution (Col 7)
-    const slicerSol = viewSheet.insertSlicer(wholeRange, 2, 7);
-    slicerSol.setPosition(2, 7, 0, 0);
+    const slicerSol = viewSheet.insertSlicer(wholeRange, 2, 6); // Anchor at F
+    slicerSol.setPosition(2, 6, 0, 0);
     slicerSol.setTitle("Filter by Solution");
 
-    // Slicer 4: Product (Col 8)
-    const slicerProd = viewSheet.insertSlicer(wholeRange, 2, 10);
-    slicerProd.setPosition(2, 10, 0, 0);
-    slicerProd.setTitle("Filter by Product");
+    // Slicer 4: Managed (Col 4)
+    const slicerManaged = viewSheet.insertSlicer(wholeRange, 2, 9); // Anchor at I
+    slicerManaged.setPosition(2, 9, 0, 0);
+    slicerManaged.setTitle("Filter by Managed");
   }
 
   Logger.log(`[Selector] Built with ${finalRows.length} rows and Slicers.`);
 }
-```
