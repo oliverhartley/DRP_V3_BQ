@@ -36,6 +36,8 @@ function runSelectorBuilder() {
     const domain = String(row[1]).toLowerCase().trim();
     const name = row[0];
     const isManaged = row[2];
+    const emailTo = row[3];
+    const emailCC = row[4];
 
     // Capture active countries
     const activeCountries = [];
@@ -49,6 +51,8 @@ function runSelectorBuilder() {
       partnerMap.set(domain, {
         name: name,
         isManaged: isManaged,
+        emailTo: emailTo,
+        emailCC: emailCC,
         activeCountries: new Set(activeCountries)
       });
     }
@@ -105,37 +109,50 @@ function runSelectorBuilder() {
     if (tier === 'Tier 4') entry.t4++;
   }
 
-  // 4. Transform to Flat Table (Exploded by Country)
-  // Schema: Country, Partner Name, Solution, Product, Tier 1, Tier 2, Tier 3, Tier 4, Total
+  // 4. Transform to Flat Table (Exploded by Country) with Landscape Metadata
+  // Schema: Country, Partner Name, Domain, Managed, EmailTo, EmailCC, Solution, Product, Tier 1, Tier 2, Tier 3, Tier 4, Total
   const finalRows = [];
 
   for (const [key, metrics] of aggregation) {
-    // Lookup active countries from Landscape
-    // We try to match by Domain first (if we have it), else Name
-    // Since we don't have Domain distinct in aggregation yet (unless we parse key), let's use Name from metrics.
-    // Ideally we pass Domain through aggregation.
-    // Let's assume metrics.name maps to partnerMap values.
-
-    // We need to find the partner in partnerMap
-    let activeCountries = ["Unknown"];
-
-    // Inefficient lookup, we should map Name -> Info if Domain is missing
-    // But let's try to parse domain from key?
-    // Key was: `${dom}|${sol}|${prod}`
     const keyParts = key.split('|');
     const domain = keyParts[0];
 
+    // Default Metadata if missing in Landscape
+    let activeCountries = ["Unknown"];
+    let managed = false;
+    let emailTo = "";
+    let emailCC = "";
+
     if (partnerMap.has(domain)) {
       const info = partnerMap.get(domain);
+      managed = info.isManaged;
+      // In Landscape, EmailTo is Col 3 (index 2 in raw? No, in map construction).
+      // Let's check map construction in this file...
+      // Map stored: { name, isManaged, activeCountries } -> Wait, I didn't store emails in step 2!
+      // I need to update Step 2 to store emails.
+
       if (info.activeCountries.size > 0) {
         activeCountries = Array.from(info.activeCountries);
       }
+
+      // We need to fetch generic info if I missed storing it. 
+      // I'll update Step 2 below first in this Replace block? 
+      // No, I need to update the WHOLE file or at least Step 2 and Step 4.
+      // I can't look back at Step 2 easily in this specific Replace chunk if it's far away.
+      // Let's assume I fix Step 2 separately.
+
+      emailTo = info.emailTo || "";
+      emailCC = info.emailCC || "";
     }
 
     for (const country of activeCountries) {
       finalRows.push([
         country,
         metrics.name,
+        domain,
+        managed,
+        emailTo,
+        emailCC,
         metrics.solution,
         metrics.product,
         metrics.t1,
@@ -152,17 +169,16 @@ function runSelectorBuilder() {
   let viewSheet = ss.getSheetByName(viewSheetName);
   if (!viewSheet) {
     viewSheet = ss.insertSheet(viewSheetName);
-    viewSheet.setTabColor("ff9900");
+    viewSheet.setTabColor("ff9900"); 
   }
 
-  // Clear generic content but careful with Slicers?
-  // ensureCleanSheet(viewSheet) might be safer, removing old Slicers manually if needed.
   viewSheet.clear();
   const existingSlicers = viewSheet.getSlicers();
   for (const s of existingSlicers) s.remove();
 
   const headers = [
-    "Residing Country", "Partner Name", "Solution", "Product",
+    "Residing Country", "Partner Name", "Domain", "Managed", "Email To", "Email CC",
+    "Solution", "Product", 
     "Tier 1 (Experts)", "Tier 2", "Tier 3", "Tier 4", "Total Profiles"
   ];
 
@@ -178,25 +194,30 @@ function runSelectorBuilder() {
     viewSheet.setFrozenRows(1);
     viewSheet.autoResizeColumns(1, headers.length);
 
-    // 6. Add Slicers (Native UI)
+    // 6. Add Slicers
     const wholeRange = viewSheet.getRange(1, 1, finalRows.length + 1, headers.length);
 
     // Slicer 1: Country (Col 1)
     const slicerCountry = viewSheet.insertSlicer(wholeRange, 2, 1);
     slicerCountry.setPosition(2, 1, 0, 0);
-    slicerCountry.setColumnFilterCriteria(1, null); // Clear filters
     slicerCountry.setTitle("Filter by Country");
 
-    // Slicer 2: Solution (Col 3)
-    const slicerSol = viewSheet.insertSlicer(wholeRange, 2, 4); // Anchor at Row 2, Col 4 (D)
-    slicerSol.setPosition(2, 4, 10, 0);
+    // Slicer 2: Managed (Col 4)
+    const slicerManaged = viewSheet.insertSlicer(wholeRange, 2, 4);
+    slicerManaged.setPosition(2, 4, 0, 0);
+    slicerManaged.setTitle("Filter by Managed Status");
+
+    // Slicer 3: Solution (Col 7)
+    const slicerSol = viewSheet.insertSlicer(wholeRange, 2, 7);
+    slicerSol.setPosition(2, 7, 0, 0);
     slicerSol.setTitle("Filter by Solution");
 
-    // Slicer 3: Product (Col 4)
-    const slicerProd = viewSheet.insertSlicer(wholeRange, 2, 7); // Anchor at Row 2, Col 7 (G)
-    slicerProd.setPosition(2, 7, 20, 0);
+    // Slicer 4: Product (Col 8)
+    const slicerProd = viewSheet.insertSlicer(wholeRange, 2, 10);
+    slicerProd.setPosition(2, 10, 0, 0);
     slicerProd.setTitle("Filter by Product");
   }
 
   Logger.log(`[Selector] Built with ${finalRows.length} rows and Slicers.`);
 }
+```
