@@ -70,28 +70,31 @@ function runSelectorBuilder() {
     // Profiles.js now explicitly returns domain in Column 2 (Index 1)
 
     const pName = row[0];
-    const pDomain = String(row[1]).toLowerCase().trim(); // Domain added to query
-    const score = Number(row[5]) || 0;
-    const product = row[4];
-    const solution = row[6];
+    const pDomain = String(row[1]).toLowerCase().trim(); // Domain
+    const pProfileId = row[2];
+    const pCountry = row[3];
+    const pJob = row[4];
+    const pProduct = row[5]; // Product is Col F (Index 5)
+    const pScore = Number(row[6]) || 0; // Score is Col G (Index 6)
+    const pSolution = row[7]; // Solution is Col H (Index 7)
 
-    if (!product || !solution) continue;
+    if (!pProduct || !pSolution) continue;
 
     // Determine Tier
     let tier = 'No Tier';
-    if (score >= 50) tier = 'Tier 1';
-    else if (score >= 35) tier = 'Tier 2';
-    else if (score >= 20) tier = 'Tier 3';
+    if (pScore >= 50) tier = 'Tier 1';
+    else if (pScore >= 35) tier = 'Tier 2';
+    else if (pScore >= 20) tier = 'Tier 3';
     else tier = 'Tier 4';
 
-    const key = getAggKey(pDomain, solution, product); // Key by Domain!
+    const key = getAggKey(pDomain, pSolution, pProduct); // Key by Domain!
 
     if (!aggregation.has(key)) {
       aggregation.set(key, {
-        name: pName,
-        solution: solution,
-        product: product,
-        t1: 0, t2: 0, t3: 0, t4: 0
+        name: pName, 
+        solution: pSolution,
+        product: pProduct,
+        t1: 0, t2: 0, t3: 0, t4: 0 
       });
     }
 
