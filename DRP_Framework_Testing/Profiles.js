@@ -31,6 +31,7 @@ function getProfilesSql() {
   return `
     SELECT
         t1.partner_name,
+        t1.partner_details.email_domain[OFFSET(0)] AS domain,
         t1.profile_details.profile_id,
         t1.profile_details.residing_country,
         t1.profile_details.job_title,
