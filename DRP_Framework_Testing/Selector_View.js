@@ -223,5 +223,15 @@ function runSelectorBuilder() {
     slicerProd.setColumnFilterCriteria(8, defaultCriteria);
   }
 
+  // FORCE UI REDRAW: Switch tabs to force Slicers to paint correctly (Workaround)
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const tempSheet = ss.getSheetByName(SHEETS.CACHE_PARTNER_LANDSCAPE);
+  if (tempSheet) {
+    tempSheet.activate();
+    SpreadsheetApp.flush();
+    Utilities.sleep(100); // Small pause
+    viewSheet.activate();
+  }
+
   Logger.log(`[Selector] Built with ${finalRows.length} rows and Slicers.`);
 }
