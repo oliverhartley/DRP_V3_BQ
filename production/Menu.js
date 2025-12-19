@@ -43,6 +43,7 @@ function onOpen() {
         .addItem('💼 Lock PS', 'lockPSBatch'))
       
       .addSeparator()
+    .addItem('📧 Send Email Summary (Single Partner)', 'runSinglePartnerEmailSender')
       .addItem('🔗 Refresh Links (Manual)', 'runLinkUpdateManual') 
       .addItem('⚠️ Reset Dropdowns', 'setupDashboard')
       .addItem('🕒 Timestamp', 'updateTimestamp')

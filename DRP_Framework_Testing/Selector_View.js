@@ -1,9 +1,10 @@
 /**
  * ****************************************
- * Google Apps Script - Selector View (Local Analytics)
+ * Google Apps Script - Selector View (Pivoted Analytics)
  * File: Selector_View.js
- * Description: Generates a consolidated "Selector" view by aggregating local CACHE data.
- *              Replaces the need for complex BQ pivots for the end-user.
+ * Description: Generates a consolidated "Selector" view in a Pivot-style grid.
+ *              Rows: Partners (with Metadata)
+ *              Columns: Solutions -> Products -> Tiers (1-4)
  * ****************************************
  */
 
@@ -27,9 +28,8 @@ function runSelectorBuilder() {
 
   // 2. Index Partner Landscape (Domain -> Metadata)
   // Header: Name(0), Domain(1), Managed(2), EmailTo(3), EmailCC(4), Countries(5+)...
-  // We need to know which Countries a partner is active in (from Landscape view)
   const partnerMap = new Map();
-  const countryHeaders = landscapeData[0].slice(5); // Columns F onwards are countries
+  const countryHeaders = landscapeData[0].slice(5);
 
   for (let i = 1; i < landscapeData.length; i++) {
     const row = landscapeData[i];
@@ -39,7 +39,6 @@ function runSelectorBuilder() {
     const emailTo = row[3];
     const emailCC = row[4];
 
-    // Capture active countries
     const activeCountries = [];
     for (let c = 0; c < countryHeaders.length; c++) {
       if (row[5 + c] === true) {
@@ -58,180 +57,250 @@ function runSelectorBuilder() {
     }
   }
 
-  // 3. Process Profiles & Calculate Tiers
-  // Schema: Partner Name(0), ID(1), Country(2), Job(3), Product(4), Score(5), Solution(6)
-  // We want to aggregate by Partner + Solution + Product
-  // And output: Partner, Domain, Solution, Product, Tier 1 Count, Tier 2 Count, ...
+  // 3. Process Profiles & Build Hierarchy
+  // We need a complete list of Solutions and Products to build the columns.
+  // And we need aggregated data per Partner.
 
-  const aggregation = new Map(); // Key: "Domain|Solution|Product" -> Counts
-
-  // Helper to getKey
-  const getAggKey = (dom, sol, prod) => `${dom}|${sol}|${prod}`;
+  const hierarchy = new Map(); // Solution -> Set<Product>
+  const partnerData = new Map(); // Domain -> Map<ProductKey, {t1, t2, t3, t4}>
 
   for (let i = 1; i < profilesData.length; i++) {
     const row = profilesData[i];
-    // We need to match Profile Domain to Partner Map
-    // Profiles.js now explicitly returns domain in Column 2 (Index 1)
+    const domain = String(row[1]).toLowerCase().trim();
+    const product = row[5];
+    const solution = row[7];
+    const score = Number(row[6]) || 0;
 
-    const pName = row[0];
-    const pDomain = String(row[1]).toLowerCase().trim(); // Domain
-    const pProfileId = row[2];
-    const pCountry = row[3];
-    const pJob = row[4];
-    const pProduct = row[5]; // Product is Col F (Index 5)
-    const pScore = Number(row[6]) || 0; // Score is Col G (Index 6)
-    const pSolution = row[7]; // Solution is Col H (Index 7)
+    if (!product || !solution) continue;
 
-    if (!pProduct || !pSolution) continue;
-
-    // Determine Tier
-    let tier = 'No Tier';
-    if (pScore >= 50) tier = 'Tier 1';
-    else if (pScore >= 35) tier = 'Tier 2';
-    else if (pScore >= 20) tier = 'Tier 3';
-    else tier = 'Tier 4';
-
-    const key = getAggKey(pDomain, pSolution, pProduct); // Key by Domain!
-
-    if (!aggregation.has(key)) {
-      aggregation.set(key, {
-        name: pName, 
-        solution: pSolution,
-        product: pProduct,
-        t1: 0, t2: 0, t3: 0, t4: 0 
-      });
+    // Update Hierarchy
+    if (!hierarchy.has(solution)) {
+      hierarchy.set(solution, new Set());
     }
+    hierarchy.get(solution).add(product);
 
-    const entry = aggregation.get(key);
-    if (tier === 'Tier 1') entry.t1++;
-    if (tier === 'Tier 2') entry.t2++;
-    if (tier === 'Tier 3') entry.t3++;
-    if (tier === 'Tier 4') entry.t4++;
+    // Update Partner Data
+    if (!partnerData.has(domain)) {
+      partnerData.set(domain, new Map());
+    }
+    const pMap = partnerData.get(domain);
+
+    // Key by Solution|Product to be safe, or just Product if unique? 
+    // Safest is Solution|Product
+    const prodKey = `${solution}|${product}`;
+
+    if (!pMap.has(prodKey)) {
+      pMap.set(prodKey, { t1: 0, t2: 0, t3: 0, t4: 0 });
+    }
+    const entry = pMap.get(prodKey);
+
+    // Calc Tier
+    if (score >= 50) entry.t1++;
+    else if (score >= 35) entry.t2++;
+    else if (score >= 20) entry.t3++;
+    else entry.t4++;
   }
 
-  // 4. Transform to Flat Table (Exploded by Country) with Landscape Metadata
-  // Schema: Country, Partner Name, Domain, Managed, EmailTo, EmailCC, Solution, Product, Tier 1, Tier 2, Tier 3, Tier 4, Total
-  const finalRows = [];
+  // Sort Hierarchy
+  const sortedSolutions = Array.from(hierarchy.keys()).sort();
+  const solutionCols = []; // { solution, products: [] }
 
-  for (const [key, metrics] of aggregation) {
-    const keyParts = key.split('|');
-    const domain = keyParts[0];
+  for (const sol of sortedSolutions) {
+    const prods = Array.from(hierarchy.get(sol)).sort();
+    solutionCols.push({
+      name: sol,
+      products: prods
+    });
+  }
 
-    // Default Metadata if missing in Landscape
-    let activeCountries = ["Unknown"];
-    let managed = false;
-    let emailTo = "";
-    let emailCC = "";
+  // 4. Build Output Table
 
-    if (partnerMap.has(domain)) {
-      const info = partnerMap.get(domain);
-      managed = info.isManaged;
-      // In Landscape, EmailTo is Col 3 (index 2 in raw? No, in map construction).
-      // Let's check map construction in this file...
-      // Map stored: { name, isManaged, activeCountries } -> Wait, I didn't store emails in step 2!
-      // I need to update Step 2 to store emails.
+  // -- Headers --
+  // Row 1: Solution Headers (Merged)
+  // Row 2: Product Headers (Merged)
+  // Row 3: Tier Headers (Repeated)
 
-      if (info.activeCountries.size > 0) {
-        activeCountries = Array.from(info.activeCountries);
-      }
+  // Fixed Columns: Country, Partner Name, Domain, Managed, Email To, Email CC
+  const fixedHeadersLength = 6;
+  const fixedHeaders = ["Country", "Partner Name", "Domain", "Managed", "Email To", "Email CC"];
 
-      // We need to fetch generic info if I missed storing it. 
-      // I'll update Step 2 below first in this Replace block? 
-      // No, I need to update the WHOLE file or at least Step 2 and Step 4.
-      // I can't look back at Step 2 easily in this specific Replace chunk if it's far away.
-      // Let's assume I fix Step 2 separately.
+  const row1 = [...fixedHeaders]; // Solutions
+  const row2 = [...fixedHeaders.map(() => "")]; // Products
+  const row3 = [...fixedHeaders.map(() => "")]; // Tiers
 
-      emailTo = info.emailTo || "";
-      emailCC = info.emailCC || "";
+  // Fill Headers
+  let colIndex = fixedHeadersLength;
+  const merges = []; // { row, col, numRows, numCols }
+  const bgColors = []; // Store colors for merging steps if needed, or apply later.
+
+  // Helper to get random distinct pastel color for solutions
+  // Fixed set of colors for consistency?
+  const solColors = ["#E6E6FA", "#F0F8FF", "#F5F5DC", "#FFE4E1", "#E0FFFF", "#FAFAD2"];
+  let cIdx = 0;
+
+  for (const solObj of solutionCols) {
+    const startCol = colIndex;
+    const products = solObj.products;
+    const solWidth = products.length * 4; // 4 Tiers per product
+
+    // Solution Header
+    row1[startCol] = solObj.name;
+    for (let k = 1; k < solWidth; k++) row1.push(""); // Fill void for merge
+    merges.push({ row: 6, col: startCol + 1, numRows: 1, numCols: solWidth, color: solColors[cIdx % solColors.length] });
+    cIdx++;
+
+    for (const prod of products) {
+      const pStartCol = colIndex;
+      // Product Header
+      row2[pStartCol] = prod;
+      for (let k = 1; k < 4; k++) row2.push(""); // Fill void
+      merges.push({ row: 7, col: pStartCol + 1, numRows: 1, numCols: 4, color: "#FFFFFF" }); // White or lighter shade?
+
+      // Tier Header
+      row3[colIndex] = "Tier 1";
+      row3[colIndex + 1] = "Tier 2";
+      row3[colIndex + 2] = "Tier 3";
+      row3[colIndex + 3] = "Tier 4";
+
+      colIndex += 4;
     }
+  }
 
-    for (const country of activeCountries) {
-      finalRows.push([
+  // -- Body Rows --
+  // Iterate Partner Map, but we need to pivot by Country?
+  // Previous view was Exploded by Country. Pivot tables usually list Unique IDs.
+  // If a partner is in multiple countries, do we list them multiple times or once?
+  // User asked for "like image 2". Image 2 doesn't show rows clearly.
+  // Assuming "Selector" typically aims to select a partner for a country.
+  // I will explod by country again to be safe (Row = Country + Partner).
+
+  const bodyRows = [];
+
+  // We need to iterate over all partners we found in Landscape (or Profiles? Landscape is master).
+  // Profiles might have partners NOT in Landscape? Unlikely if integrity is kept.
+  // We'll iterate partnerMap.
+
+  for (const [domain, meta] of partnerMap) {
+    const pData = partnerData.get(domain);
+    // If no profile data, they have all zeros.
+
+    // Default country "Unknown" if set empty
+    const countries = meta.activeCountries.size > 0 ? Array.from(meta.activeCountries) : ["Unknown"];
+
+    for (const country of countries) {
+      const row = [
         country,
-        metrics.name,
+        meta.name,
         domain,
-        managed,
-        emailTo,
-        emailCC,
-        metrics.solution,
-        metrics.product,
-        metrics.t1,
-        metrics.t2,
-        metrics.t3,
-        metrics.t4,
-        metrics.t1 + metrics.t2 + metrics.t3 + metrics.t4
-      ]);
+        meta.isManaged,
+        meta.emailTo,
+        meta.emailCC
+      ];
+
+      // Add metrics
+      for (const solObj of solutionCols) {
+        for (const prod of solObj.products) {
+          const key = `${solObj.name}|${prod}`;
+          const entry = pData ? pData.get(key) : null; // Check if pData exists before getting entry
+          if (entry) {
+            row.push(entry.t1 || 0); // show 0? or hyphen?
+            row.push(entry.t2 || 0);
+            row.push(entry.t3 || 0);
+            row.push(entry.t4 || 0);
+          } else {
+            row.push(0, 0, 0, 0); // Zeros
+          }
+        }
+      }
+      bodyRows.push(row);
     }
   }
 
-  // 5. Write to VIEW_Selector
+  // 5. Write to Sheet
   const viewSheetName = "VIEW_Selector";
   let viewSheet = ss.getSheetByName(viewSheetName);
   if (!viewSheet) {
     viewSheet = ss.insertSheet(viewSheetName);
-    viewSheet.setTabColor("ff9900"); 
+    viewSheet.setTabColor("ff9900");
   }
 
   viewSheet.clear();
   const existingSlicers = viewSheet.getSlicers();
   for (const s of existingSlicers) s.remove();
 
-  const headers = [
-    "Residing Country", "Partner Name", "Domain", "Managed", "Email To", "Email CC", 
-    "Solution", "Product", 
-    "Tier 1 (Experts)", "Tier 2", "Tier 3", "Tier 4", "Total Profiles"
-  ];
-
-  // Start Table at Row 6
   const startRow = 6;
 
-  if (finalRows.length > 0) {
-    viewSheet.getRange(startRow, 1, 1, headers.length)
-      .setValues([headers])
-      .setBackground("#efefef")
-      .setFontWeight("bold");
+  if (bodyRows.length > 0) {
+    // Write Headers
+    // Row 6 (Sol), Row 7 (Prod), Row 8 (Tier)
+    const headerRange = viewSheet.getRange(startRow, 1, 3, row1.length);
+    headerRange.setValues([row1, row2, row3]);
 
-    const dataRange = viewSheet.getRange(startRow + 1, 1, finalRows.length, headers.length);
-    dataRange.setValues(finalRows);
+    // Apply Merges & Colors
+    for (const m of merges) {
+      viewSheet.getRange(m.row, m.col, m.numRows, m.numCols).merge().setBackground(m.color).setHorizontalAlignment("center").setFontWeight("bold");
+    }
 
-    viewSheet.setFrozenRows(startRow);
-    viewSheet.autoResizeColumns(1, headers.length);
+    // Style Tier Row
+    viewSheet.getRange(startRow + 2, fixedHeadersLength + 1, 1, row1.length - fixedHeadersLength)
+      .setBackground("#f3f3f3")
+      .setFontWeight("bold")
+      .setHorizontalAlignment("center")
+      .setBorder(true, true, true, true, true, true);
 
-    // FORCE FLUSH: Ensure data is written before Slicers try to read it.
+    // Style Fixed Headers
+    viewSheet.getRange(startRow, 1, 3, fixedHeadersLength)
+      .setBackground("#e0e0e0")
+      .setFontWeight("bold")
+      .setVerticalAlignment("middle");
+
+    // Write Data
+    const dataRange = viewSheet.getRange(startRow + 3, 1, bodyRows.length, row1.length);
+    dataRange.setValues(bodyRows);
+
+    // Formatting Data
+    // Zeros as hyphens? optional.
+
+    // Freeze
+    viewSheet.setFrozenRows(startRow + 2);
+    viewSheet.setFrozenColumns(2); // Freeze Country and Partner Name
+
+    // Auto resize
+    viewSheet.autoResizeColumns(1, fixedHeadersLength);
+    // Fixed width for metric columns to save space?
+    viewSheet.setColumnWidths(fixedHeadersLength + 1, row1.length - fixedHeadersLength, 50);
+
     SpreadsheetApp.flush();
 
-    // 6. Add Slicers - Pre-configured
-    const wholeRange = viewSheet.getRange(startRow, 1, finalRows.length + 1, headers.length);
+    // 6. Add Slicers for Fixed Columns
+    const wholeRange = viewSheet.getRange(startRow + 2, 1, bodyRows.length + 1, row1.length);
     const defaultCriteria = SpreadsheetApp.newFilterCriteria().build();
 
-    // Slicer 1: Partner Name (Col 2)
-    const slicerPartner = viewSheet.insertSlicer(wholeRange, 2, 1); 
-    slicerPartner.setPosition(2, 1, 0, 0);
-    slicerPartner.setTitle("Filter by Partner Name");
-    slicerPartner.setColumnFilterCriteria(2, defaultCriteria);
+    // Country
+    const s1 = viewSheet.insertSlicer(wholeRange, 1, 1);
+    s1.setTitle("Filter Country");
+    s1.setPosition(2, 1, 0, 0);
 
-    // Slicer 2: Solution (Col 7)
-    const slicerSol = viewSheet.insertSlicer(wholeRange, 7, 4); 
-    slicerSol.setPosition(2, 4, 0, 0);
-    slicerSol.setTitle("Filter by Solution");
-    slicerSol.setColumnFilterCriteria(7, defaultCriteria);
+    // Partner
+    const s2 = viewSheet.insertSlicer(wholeRange, 2, 1);
+    s2.setTitle("Filter Partner");
+    s2.setPosition(2, 3, 0, 0);
 
-    // Slicer 3: Product (Col 8)
-    const slicerProd = viewSheet.insertSlicer(wholeRange, 8, 7); 
-    slicerProd.setPosition(2, 7, 0, 0);
-    slicerProd.setTitle("Filter by Product");
-    slicerProd.setColumnFilterCriteria(8, defaultCriteria);
+    // Managed
+    const s3 = viewSheet.insertSlicer(wholeRange, 4, 1);
+    s3.setTitle("Filter Managed");
+    s3.setPosition(2, 5, 0, 0);
+
   }
 
-  // FORCE UI REDRAW: Switch tabs to force Slicers to paint correctly (Workaround)
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  // Workaround redraw
   const tempSheet = ss.getSheetByName(SHEETS.CACHE_PARTNER_LANDSCAPE);
   if (tempSheet) {
     tempSheet.activate();
     SpreadsheetApp.flush();
-    Utilities.sleep(100); // Small pause
+    Utilities.sleep(100);
     viewSheet.activate();
   }
 
-  Logger.log(`[Selector] Built with ${finalRows.length} rows and Slicers.`);
+  Logger.log(`[Selector] Built Pivot View with ${bodyRows.length} rows.`);
 }

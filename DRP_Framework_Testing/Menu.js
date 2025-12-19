@@ -26,7 +26,9 @@ function onOpen() {
     .addItem('🔄 Rebuild Partner Landscape (Full View)', 'menuRebuildLandscape')
     .addItem('👥 Build Profile DB (Granular View)', 'menuRunProfiles')
     .addSeparator()
-    .addItem('📊 Build Selector View (Consolidated)', 'menuRunSelector')
+      .addItem('Build Selector View (Local)', 'runSelectorBuilder')
+      .addItem('Build Looker Data', 'runLookerDataBuilder')
+      .addSeparator()
     .addToUi();
 }
 */
