@@ -68,6 +68,7 @@ function runBatchEmailSender() {
 
           // Update Status to Current Batch ID
           sheet.getRange(i + 1, COL_STATUS + 1).setValue(currentBatchId);
+          SpreadsheetApp.flush(); // Force write to avoid duplicates if script crashes
           processedCount++;
 
           // Respect Gemini quotas
