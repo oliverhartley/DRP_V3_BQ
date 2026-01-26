@@ -131,13 +131,16 @@ function updateDashboardCache() {
 
   const partnerMetaMap = new Map();
   for (let i = 1; i < dbData.length; i++) {
-    const pName = dbData[i][idxName];
+    const pName = String(dbData[i][idxName] || "").trim();
+    if (!pName) continue;
+
     const regionFlags = {};
     regions.forEach(r => {
       regionFlags[r] = (regionIndices[r] !== -1 && dbData[i][regionIndices[r]] === true);
     });
 
-    partnerMetaMap.set(pName, {
+    partnerMetaMap.set(pName.toLowerCase(), {
+      name: pName, // Store original display name
       countries: String(dbData[i][idxCountry] || ""),
       isManaged: dbData[i][idxManaged] === true,
       totalProfiles: idxTotalProfiles !== -1 ? (dbData[i][idxTotalProfiles] || 0) : 0,
@@ -177,8 +180,8 @@ function updateDashboardCache() {
   // Data Rows
   for (let r = 3; r < scoreValues.length; r++) {
     const pId = scoreValues[r][0];
-    const pName = scoreValues[r][1];
-    const meta = partnerMetaMap.get(pName);
+    const pNameRaw = String(scoreValues[r][1] || "").trim();
+    const meta = partnerMetaMap.get(pNameRaw.toLowerCase());
     const baselineRow = baselineMap.get(pId);
 
     if (!meta) continue; // Skip if not in DB

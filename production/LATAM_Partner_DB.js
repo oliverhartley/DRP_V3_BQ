@@ -105,7 +105,8 @@ function runBigQueryQuery() {
           SELECT DISTINCT
               -- Use BQ ID if matched, otherwise generate a placeholder using Sheet Name
               IFNULL(partner_id, CONCAT('MISSING_BQ_', REGEXP_REPLACE(sheet_partner_name, ' ', '_'))) as partner_id, 
-              IFNULL(partner_name, sheet_partner_name) as partner_name, 
+              -- PREFER SHEET NAME (Matches Partner_Scoring.js logic)
+              COALESCE(sheet_partner_name, partner_name) as partner_name, 
               profile_id,
               residing_country,
               sheet_domain
@@ -131,7 +132,7 @@ function runBigQueryQuery() {
               LOGICAL_OR(is_app_mod) as is_app_mod,
               ARRAY_AGG(DISTINCT sheet_domain) as domains
           FROM RawData
-          GROUP BY partner_id
+          GROUP BY 1 -- Use ordinal for group by with complex IFNULL
       ),
       
       -- 5. Profile Breakdown
@@ -157,7 +158,7 @@ function runBigQueryQuery() {
               MAX(up.partner_name) as partner_name, 
               COUNT(DISTINCT up.profile_id) AS Total_Profiles,
               STRING_AGG(DISTINCT up.residing_country, ', ') AS Operating_Countries,
-              (APPROX_TOP_COUNT(up.residing_country, 1))[OFFSET(0)].value AS Top_Operating_Country,
+              (APPROX_TOP_COUNT(IFNULL(up.residing_country, 'Unknown'), 1))[OFFSET(0)].value AS Top_Operating_Country,
               pf.is_matched AS Managed_Partners,
               pf.is_gsi AS GSI, pf.is_brazil AS Brazil, pf.is_mco AS MCO, pf.is_mexico AS Mexico, pf.is_ps AS PS,
               pf.is_ai_ml, pf.is_gws, pf.is_security, pf.is_db, pf.is_analytics, pf.is_infra, pf.is_app_mod,

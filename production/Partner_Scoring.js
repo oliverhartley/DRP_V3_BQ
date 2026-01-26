@@ -9,7 +9,7 @@
 // NOTE: PROJECT_ID, DESTINATION_SS_ID, SOURCE_SS_ID, SHEET_NAME_SCORE, SHEET_NAME_SOURCE come from Config.gs
 
 const SCORING_START_ROW = 3;
-const COL_MAP_SCORING = { DOMAIN: 34 };
+const COL_MAP_SCORING = { PARTNER_NAME: 33, DOMAIN: 34 };
 
 function getScoringSpreadsheetData() {
   const ss = SpreadsheetApp.openById(SOURCE_SS_ID);
@@ -25,9 +25,14 @@ function getScoringSpreadsheetData() {
     const row = values[i];
     if (textStyles[i][0].isStrikethrough()) continue; 
     let domain = String(row[COL_MAP_SCORING.DOMAIN]).toLowerCase().trim().replace(/[\x00-\x1F\x7F-\x9F\u200B]/g, "");
-    if (domain && !domain.startsWith('@')) domain = '@' + domain;
-    if (domain && domain.includes('@')) {
-      structList.push(`STRUCT('${domain}' AS domain)`);
+    let partnerName = String(row[COL_MAP_SCORING.PARTNER_NAME] || "").trim().replace(/[\x00-\x1F\x7F-\x9F\u200B]/g, "");
+
+    // Fix V 4.5: Robust Logic + Name Fallback
+    const escapedDomain = domain.replace(/'/g, "\\'");
+    const escapedName = partnerName.replace(/'/g, "\\'");
+
+    if (escapedDomain || escapedName) {
+      structList.push(`STRUCT('${escapedDomain}' AS domain, '${escapedName}' AS partner_name)`);
     }
   }
   return structList.join(',\n');
@@ -41,7 +46,7 @@ function getScorePivotSql(virtualTableData) {
         "PivotData AS (",
         "    SELECT",
         "        t2.partner_id,",
-        "        t2.partner_name,",
+    "        COALESCE(t2.sheet_partner_name, t2.partner_name) AS partner_name,",
         "        -- *** NEW COLUMN: Total Profiles ***",
         "        COUNT(DISTINCT t2.profile_id) AS Total_Profiles,",
         "",
@@ -159,6 +164,7 @@ function getScorePivotSql(virtualTableData) {
   sqlParts.push("            SELECT");
   sqlParts.push("                t1.partner_id,");
   sqlParts.push("                t1.partner_name,");
+  sqlParts.push("                sheet.partner_name as sheet_partner_name,");
   sqlParts.push("                -- Pass profile_id to outer query for counting");
   sqlParts.push("                t1.profile_details.profile_id,");
   sqlParts.push("                scores.scored_product,");
@@ -180,10 +186,11 @@ function getScorePivotSql(virtualTableData) {
   sqlParts.push("                    ELSE 'Other' ");
   sqlParts.push("                END AS scored_solution");
   sqlParts.push("            FROM");
-  sqlParts.push("                `concord-prod.service_partnercoe.drp_partner_master` AS t1,");
-  sqlParts.push("                UNNEST(t1.profile_details.score_details) AS scores");
+  sqlParts.push("                `concord-prod.service_partnercoe.drp_partner_master` AS t1");
+  sqlParts.push("            LEFT JOIN UNNEST(t1.profile_details.score_details) AS scores");
   sqlParts.push("            LEFT JOIN Spreadsheet_Data AS sheet");
-  sqlParts.push("              ON TRIM(LOWER(t1.partner_details.email_domain[OFFSET(0)])) = sheet.domain");
+  sqlParts.push("              ON REGEXP_REPLACE(TRIM(LOWER(t1.partner_details.email_domain[OFFSET(0)])), r'^@', '') = REGEXP_REPLACE(TRIM(LOWER(sheet.domain)), r'^@', '')");
+  sqlParts.push("              OR TRIM(LOWER(t1.partner_name)) = TRIM(LOWER(sheet.partner_name))");
   sqlParts.push("            WHERE");
   sqlParts.push("                t1.profile_details.residing_country IN (");
   sqlParts.push("                    'Argentina', 'Bolivia', 'Brazil', 'Chile', 'Colombia', 'Costa Rica',");
@@ -191,11 +198,11 @@ function getScorePivotSql(virtualTableData) {
   sqlParts.push("                    'Honduras', 'Mexico', 'Nicaragua', 'Panama', 'Paraguay', 'Peru',");
   sqlParts.push("                    'Uruguay', 'Venezuela'");
   sqlParts.push("                )");
-  sqlParts.push("                AND scores.scored_product IS NOT NULL ");
   sqlParts.push("        ) AS t2");
   sqlParts.push("    GROUP BY");
   sqlParts.push("        t2.partner_id,");
-  sqlParts.push("        t2.partner_name");
+  sqlParts.push("        t2.partner_name,");
+  sqlParts.push("        t2.sheet_partner_name");
   sqlParts.push(")");
   sqlParts.push("SELECT * FROM PivotData");
   
