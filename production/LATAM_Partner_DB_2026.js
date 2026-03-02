@@ -64,13 +64,22 @@ function runBigQueryQuery2026() {
            t1.profile_details.profile_id,
            LOWER(TRIM(t1.partner_name)) AS bq_primary_name_clean,
            LOWER(TRIM(t1.partner_details.vector_details.partner_group_name)) as bq_group_name_clean,
-           LOWER(bq_domain) as bq_domain_flat
+           LOWER(bq_domain) as bq_domain_flat,
+           REPLACE(LOWER(bq_domain), '@', '') as bq_domain_clean
         FROM \`concord-prod.service_partnercoe.drp_partner_master\` AS t1
         LEFT JOIN UNNEST(t1.partner_details.email_domain) AS bq_domain
         WHERE t1.profile_details.residing_country IN ('Argentina', 'Bolivia', 'Brazil', 'Chile', 'Colombia', 'Costa Rica', 'Cuba', 'Dominican Republic', 'Ecuador', 'El Salvador', 'Guatemala', 'Honduras', 'Mexico', 'Nicaragua', 'Panama', 'Paraguay', 'Peru', 'Uruguay', 'Venezuela')
       ),
 
-      -- 2. Join Sheet (Left) -> BQ (Right) using Exact Name or Group Name
+      -- 1.5 Manual Domain Overrides for Missing Partners
+      Manual_Overrides AS (
+          SELECT 'Al Inversiones' as sheet_name, 'canvia.com' as domain UNION ALL
+          SELECT 'CoreBi' as sheet_name, 'corebi.com.ar' as domain UNION ALL
+          SELECT 'ENGINEERING DO BRASIL S/A' as sheet_name, 'engdb.com.br' as domain UNION ALL
+          SELECT 'SERPRO' as sheet_name, 'serpro.gov.br' as domain
+      ),
+
+      -- 2. Join Sheet (Left) -> BQ (Right) using Exact Name, Group Name, OR Manual Domain Override
       RawData AS (
           SELECT
               bq.partner_id,
@@ -78,15 +87,18 @@ function runBigQueryQuery2026() {
               bq.profile_id,
               bq.residing_country,
               bq.bq_domain_flat,
+              bq.bq_domain_clean,
               CASE WHEN bq.partner_id IS NOT NULL THEN TRUE ELSE FALSE END as is_matched,
               sheet.partner_name as sheet_partner_name,
               sheet.sub_region,
               sheet.pdm,
               sheet.partner_type
           FROM Spreadsheet_Data AS sheet
+          LEFT JOIN Manual_Overrides mo ON LOWER(TRIM(sheet.partner_name)) = LOWER(TRIM(mo.sheet_name))
           LEFT JOIN BQ_Flattened AS bq
             ON LOWER(TRIM(sheet.partner_name)) = bq.bq_primary_name_clean
             OR LOWER(TRIM(sheet.partner_name)) = bq.bq_group_name_clean
+            OR (mo.domain IS NOT NULL AND bq.bq_domain_clean = mo.domain)
       ),
       
       -- 3. Get Unique Profiles
@@ -96,7 +108,7 @@ function runBigQueryQuery2026() {
               sheet_partner_name as partner_name, 
               profile_id,
               residing_country,
-              bq_domain_flat,
+              bq_domain_clean,
               sub_region,
               pdm,
               partner_type,
@@ -112,7 +124,7 @@ function runBigQueryQuery2026() {
               STRING_AGG(DISTINCT sub_region, ', ') as sub_regions,
               STRING_AGG(DISTINCT pdm, ', ') as pdms,
               STRING_AGG(DISTINCT partner_type, ', ') as partner_types,
-              ARRAY_AGG(DISTINCT bq_domain_flat IGNORE NULLS) as domains
+              ARRAY_AGG(DISTINCT bq_domain_clean IGNORE NULLS) as domains
           FROM RawData
           GROUP BY 1
       ),
