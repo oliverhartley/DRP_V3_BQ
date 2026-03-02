@@ -35,11 +35,15 @@ function getSpreadsheetDataAsSqlStruct() {
     let domain = String(row[COL_MAP.DOMAIN]).toLowerCase().trim().replace(/[\x00-\x1F\x7F-\x9F\u200B]/g, "");
     let partnerName = String(row[COL_MAP.PARTNER_NAME] || "").trim().replace(/[\x00-\x1F\x7F-\x9F\u200B]/g, "");
 
-    if (domain && !domain.includes('#n/a')) {
-      const escapedDomain = domain.replace(/'/g, "\\'"); // Escape single quotes for SQL
-      const escapedName = partnerName.replace(/'/g, "\\'"); // Escape single quotes for SQL
+    // V5.9 logic: Allow row if domain exists OR if partner name exists (Discovery Mode)
+    if ((domain && !domain.includes('#n/a')) || partnerName) {
+      const escapedDomain = (domain && !domain.includes('#n/a')) ? domain.replace(/'/g, "\\'") : "NULL";
+      const escapedName = partnerName.replace(/'/g, "\\'"); 
       const isTrue = (val) => val === true || String(val).toUpperCase() === 'TRUE';
-      let sqlLine = `STRUCT('${escapedDomain}' AS domain, '${escapedName}' AS partner_name, ${isTrue(row[COL_MAP.GSI])} AS is_gsi, ${isTrue(row[COL_MAP.BRAZIL])} AS is_brazil, ${isTrue(row[COL_MAP.MCO])} AS is_mco, ${isTrue(row[COL_MAP.MEXICO])} AS is_mexico, ${isTrue(row[COL_MAP.PS])} AS is_ps, ${isTrue(row[COL_MAP.AI_ML])} AS is_ai_ml, ${isTrue(row[COL_MAP.GWS])} AS is_gws, ${isTrue(row[COL_MAP.SECURITY])} AS is_security, ${isTrue(row[COL_MAP.DB])} AS is_db, ${isTrue(row[COL_MAP.ANALYTICS])} AS is_analytics, ${isTrue(row[COL_MAP.INFRA])} AS is_infra, ${isTrue(row[COL_MAP.APP_MOD])} AS is_app_mod)`;
+
+      const domainValue = escapedDomain === "NULL" ? "CAST(NULL AS STRING)" : `'${escapedDomain}'`;
+
+      let sqlLine = `STRUCT(${domainValue} AS domain, '${escapedName}' AS partner_name, ${isTrue(row[COL_MAP.GSI])} AS is_gsi, ${isTrue(row[COL_MAP.BRAZIL])} AS is_brazil, ${isTrue(row[COL_MAP.MCO])} AS is_mco, ${isTrue(row[COL_MAP.MEXICO])} AS is_mexico, ${isTrue(row[COL_MAP.PS])} AS is_ps, ${isTrue(row[COL_MAP.AI_ML])} AS is_ai_ml, ${isTrue(row[COL_MAP.GWS])} AS is_gws, ${isTrue(row[COL_MAP.SECURITY])} AS is_security, ${isTrue(row[COL_MAP.DB])} AS is_db, ${isTrue(row[COL_MAP.ANALYTICS])} AS is_analytics, ${isTrue(row[COL_MAP.INFRA])} AS is_infra, ${isTrue(row[COL_MAP.APP_MOD])} AS is_app_mod)`;
       structList.push(sqlLine);
     }
   }
@@ -95,9 +99,10 @@ function runBigQueryQuery() {
               IFNULL(sheet.is_app_mod, FALSE) as is_app_mod
           FROM Spreadsheet_Data AS sheet
           LEFT JOIN BQ_Flattened AS bq
-            ON REGEXP_REPLACE(TRIM(LOWER(bq.bq_domain_flat)), r'^@', '') = REGEXP_REPLACE(TRIM(LOWER(sheet.domain)), r'^@', '')
-            -- FALLBACK MATCH: If Domain fails, try Exact Name Match
-            OR TRIM(LOWER(bq.partner_name)) = TRIM(LOWER(sheet.partner_name))
+            ON (sheet.domain IS NOT NULL AND REGEXP_REPLACE(TRIM(LOWER(bq.bq_domain_flat)), r'^@', '') = REGEXP_REPLACE(TRIM(LOWER(sheet.domain)), r'^@', ''))
+            -- FALLBACK MATCH: If Domain fails OR is missing, try Exact Name Match
+            OR (sheet.domain IS NULL AND TRIM(LOWER(bq.partner_name)) = TRIM(LOWER(sheet.partner_name)))
+            OR (sheet.domain IS NOT NULL AND TRIM(LOWER(bq.partner_name)) = TRIM(LOWER(sheet.partner_name)))
       ),
       
       -- 3. Get Unique Profiles
