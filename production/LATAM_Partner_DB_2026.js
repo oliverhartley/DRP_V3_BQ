@@ -120,29 +120,12 @@ function runBigQueryQuery2026() {
           FROM RawData
       ),
       
-      -- 5. Profile Breakdown
-      ProfileBreakdown_Prep AS (
-          SELECT internal_id, residing_country, COUNT(DISTINCT profile_id) as count
-          FROM UniqueProfiles
-          WHERE profile_id IS NOT NULL 
-          GROUP BY internal_id, residing_country
-      ),
-      
-      ProfileBreakdown AS (
-          SELECT 
-              internal_id, 
-              STRING_AGG(CONCAT(residing_country, ':', CAST(count AS STRING)), '|') as breakdown
-          FROM ProfileBreakdown_Prep
-          GROUP BY internal_id
-      ),
-      
-      -- 6. Final Aggregation
+      -- 5. Final Aggregation
       PartnerAggregation AS (
           SELECT
               up.internal_id,
               MAX(up.partner_id) as partner_id,
               MAX(up.partner_name) as Partner_Name, 
-              COUNT(DISTINCT up.profile_id) AS Total_Profiles,
               MAX(up.is_matched) AS Matched_In_BQ,
               MAX(up.sub_region) AS Sub_Region,
               MAX(up.pdm) AS PDM,
@@ -158,12 +141,9 @@ function runBigQueryQuery2026() {
           pa.Type_of_Partner,
           pa.internal_id AS Internal_ID,
           pa.partner_id AS Partner_ID,
-          pa.Total_Profiles,
           pa.Matched_In_BQ,
-          pb.breakdown AS Profile_Breakdown,
           (SELECT STRING_AGG(DISTINCT domain, ', ') FROM UNNEST(pa.domains) AS domain WHERE domain IS NOT NULL) AS Discovered_Domains
       FROM PartnerAggregation AS pa
-      LEFT JOIN ProfileBreakdown AS pb ON pa.internal_id = pb.internal_id
       ORDER BY pa.Partner_Name;
     `;
 
@@ -194,9 +174,6 @@ function runBigQueryQuery2026() {
     
     // Formatting
     sheet.getRange(1, 1, 1, headers.length).setFontWeight("bold").setBackground("#f3f3f3");
-    if (data.length > 1) {
-      sheet.getRange(2, 7, data.length - 1, 1).setNumberFormat("#,##0"); // Profiles column is now 7th
-    }
     
     Logger.log("2026 Data load complete!");
   } catch (e) { 
