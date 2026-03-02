@@ -67,7 +67,7 @@ function runBigQueryQuery2026() {
            LOWER(TRIM(t1.partner_details.vector_details.partner_group_name)) as bq_group_name_clean,
            LOWER(bq_domain) as bq_domain_flat,
            REPLACE(LOWER(bq_domain), '@', '') as bq_domain_clean
-        FROM \\\`concord-prod.service_partnercoe.drp_partner_master\\\` AS t1
+        FROM \`concord-prod.service_partnercoe.drp_partner_master\` AS t1
         LEFT JOIN UNNEST(t1.partner_details.email_domain) AS bq_domain
         WHERE t1.profile_details.residing_country IN ('Argentina', 'Bolivia', 'Brazil', 'Chile', 'Colombia', 'Costa Rica', 'Cuba', 'Dominican Republic', 'Ecuador', 'El Salvador', 'Guatemala', 'Honduras', 'Mexico', 'Nicaragua', 'Panama', 'Paraguay', 'Peru', 'Uruguay', 'Venezuela')
       ),
