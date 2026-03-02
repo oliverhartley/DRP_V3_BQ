@@ -73,7 +73,7 @@ function runBigQueryQuery2026() {
 
       -- 1.5 Manual Domain Overrides for Missing Partners
       Manual_Overrides AS (
-          SELECT 'Al Inversiones' as sheet_name, 'canvia.com' as domain UNION ALL
+          SELECT 'AI Inversiones' as sheet_name, 'canvia.com' as domain UNION ALL
           SELECT 'CoreBi' as sheet_name, 'corebi.com.ar' as domain UNION ALL
           SELECT 'ENGINEERING DO BRASIL S/A' as sheet_name, 'engdb.com.br' as domain UNION ALL
           SELECT 'SERPRO' as sheet_name, 'serpro.gov.br' as domain UNION ALL
