@@ -76,7 +76,8 @@ function runBigQueryQuery2026() {
           SELECT 'Al Inversiones' as sheet_name, 'canvia.com' as domain UNION ALL
           SELECT 'CoreBi' as sheet_name, 'corebi.com.ar' as domain UNION ALL
           SELECT 'ENGINEERING DO BRASIL S/A' as sheet_name, 'engdb.com.br' as domain UNION ALL
-          SELECT 'SERPRO' as sheet_name, 'serpro.gov.br' as domain
+          SELECT 'SERPRO' as sheet_name, 'serpro.gov.br' as domain UNION ALL
+          SELECT 'DEV- CODES SAS' as sheet_name, 'dev-codes.com' as domain
       ),
 
       -- 2. Join Sheet (Left) -> BQ (Right) using Exact Name, Group Name, OR Manual Domain Override
