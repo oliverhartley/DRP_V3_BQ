@@ -30,32 +30,11 @@ function check2026PartnerMatches() {
   // 2. Query BigQuery for matches and non-matches
   // We want to see how many of THESE names match ANY variation in the Master DB
   const SQL_QUERY = `
-    WITH SheetNames AS (
-      SELECT name FROM UNNEST([${validNames.join(', ')}]) AS name
-    ),
-    BQ_Names AS (
-      SELECT DISTINCT 
-        t1.partner_id,
-        t1.partner_name AS bq_primary_name,
-        LOWER(TRIM(t1.partner_name)) AS bq_primary_name_clean,
-        alias
-      FROM \`concord-prod.service_partnercoe.drp_partner_master\` AS t1,
-      UNNEST(CASE WHEN ARRAY_LENGTH(t1.partner_details.alias) > 0 THEN t1.partner_details.alias ELSE [t1.partner_name] END) as alias
-      WHERE t1.profile_details.residing_country IN ('Argentina', 'Bolivia', 'Brazil', 'Chile', 'Colombia', 'Costa Rica', 'Cuba', 'Dominican Republic', 'Ecuador', 'El Salvador', 'Guatemala', 'Honduras', 'Mexico', 'Nicaragua', 'Panama', 'Paraguay', 'Peru', 'Uruguay', 'Venezuela')
-    )
     SELECT 
-      sn.name AS Spreadsheet_Name,
-      CASE 
-        WHEN bq.partner_id IS NOT NULL THEN 'MATCHED (Exact or Alias)'
-        ELSE 'NOT FOUND'
-      END AS Match_Status,
-      bq.partner_id AS Matched_BQ_ID,
-      bq.bq_primary_name AS Matched_BQ_Primary_Name
-    FROM SheetNames sn
-    LEFT JOIN BQ_Names bq 
-      ON LOWER(TRIM(sn.name)) = LOWER(TRIM(bq.alias)) 
-      OR LOWER(TRIM(sn.name)) = bq.bq_primary_name_clean
-    ORDER BY Match_Status DESC, sn.name
+      column_name,
+      data_type
+    FROM \`concord-prod.service_partnercoe\`.INFORMATION_SCHEMA.COLUMNS
+    WHERE table_name = 'drp_partner_master'
   `;
 
   // 3. Execute and Write Results to a Temp Sheet
