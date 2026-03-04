@@ -398,6 +398,11 @@ function refreshDashboardData2026(dashSheet) {
     const solSpan = outCols - (solMergeStart - 1); if (solSpan > 1) dashSheet.getRange(solutionRowIndex, solMergeStart, 1, solSpan).merge();
     const prodSpan = outCols - (prodMergeStart - 1); if (prodSpan > 1) dashSheet.getRange(productRowIndex, prodMergeStart, 1, prodSpan).merge();
     
+    // Vertically merge the 5 metadata header columns so they span the 3 header rows cleanly
+    for (let c = 1; c <= 5; c++) {
+      dashSheet.getRange(DATA_START_ROW_2026, c, 3, 1).mergeVertically().setVerticalAlignment("middle");
+    }
+
   } else {
     dashSheet.getRange(DATA_START_ROW_2026, 1).setValue("No partners found for this selection.");
   }
