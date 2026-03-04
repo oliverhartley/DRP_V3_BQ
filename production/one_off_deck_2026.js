@@ -282,6 +282,7 @@ function formatTestDeepDivePivot(sheet, lastRow, lastCol, rawDataStartRow) {
         .setHorizontalAlignment("center")
         .setVerticalAlignment("middle")
         .setTextRotation(90)
+        .setWrapStrategy(SpreadsheetApp.WrapStrategy.WRAP)
         .setBorder(true, true, true, true, true, true);
       sheet.setColumnWidth(currentCol, 40); 
       currentCol++;
