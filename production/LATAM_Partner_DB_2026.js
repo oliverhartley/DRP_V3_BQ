@@ -7,7 +7,6 @@
  * ****************************************
  */
 
-const SHEET_NAME_2026 = "LATAM_Partner_DB_2026";
 const START_ROW_2026 = 2; // Assuming row 1 is headers
 
 const COL_MAP_2026 = {
