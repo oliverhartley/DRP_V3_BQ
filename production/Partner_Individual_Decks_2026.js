@@ -23,11 +23,16 @@ function runAccentureTestBatch2026() {
 
   const dbData = dbSheet.getDataRange().getValues();
   const partnerRows = [];
+  let existingDeckId = null;
 
   // Find Accenture rows in DB (Column A is index 0)
   for (let i = 1; i < dbData.length; i++) {
     if (String(dbData[i][0]).trim().toLowerCase() === testPartner.toLowerCase()) {
       partnerRows.push(i + 1); // 1-based row index
+      // Col L is index 11
+      if (!existingDeckId && dbData[i][11]) {
+        existingDeckId = String(dbData[i][11]).trim();
+      }
     }
   }
 
@@ -36,9 +41,9 @@ function runAccentureTestBatch2026() {
     return;
   }
 
-  Logger.log(`Found ${partnerRows.length} region entries for ${testPartner}. Processing deck...`);
+  Logger.log(`Found ${partnerRows.length} region entries for ${testPartner}. Existing Deck ID: ${existingDeckId || "None"}. Processing deck...`);
 
-  const result = generateDeckForPartner2026(testPartner);
+  const result = generateDeckForPartner2026(testPartner, existingDeckId);
 
   if (result && result.url) {
     Logger.log(`Deck Generated! Updating Database Links...`);
@@ -62,7 +67,7 @@ function getDeckBatchId2026() {
 }
 
 // Core generation logic derived from the prototype
-function generateDeckForPartner2026(partnerName) {
+function generateDeckForPartner2026(partnerName, existingDeckId = null) {
   const ssMain = SpreadsheetApp.openById(DESTINATION_SS_ID);
 
   // 1. Fetch Scoring Data
@@ -173,16 +178,35 @@ function generateDeckForPartner2026(partnerName) {
   // 3. Create/Update Spreadsheet
   const deckName = `${partnerName} - Partner Dashboard 2026`;
   let targetSS;
-  const folder = DriveApp.getFolderById(DESTINATION_FOLDER_ID);
-  const files = folder.getFilesByName(deckName);
+  const folderId = "1GT-A2Hkg75uXxQF0FYCKROXW8rBw_XjC"; // Force using the designated 2025 folder
+  const folder = DriveApp.getFolderById(folderId);
 
-  if (files.hasNext()) {
-    targetSS = SpreadsheetApp.open(files.next());
-  } else {
-    targetSS = SpreadsheetApp.create(deckName);
-    // Move to correct folder
-    const file = DriveApp.getFileById(targetSS.getId());
-    file.moveTo(folder);
+  if (existingDeckId) {
+    try {
+      targetSS = SpreadsheetApp.openById(existingDeckId);
+      Logger.log(`Successfully opened existing deck: ${targetSS.getName()}`);
+    } catch (e) {
+      Logger.log(`WARNING: Could not open deck by ID ${existingDeckId}. Searching by name...`);
+    }
+  }
+
+  if (!targetSS) {
+    const files = folder.getFilesByName(partnerName); // Try searching purely by partner name per 2025 naming convention
+    if (files.hasNext()) {
+      targetSS = SpreadsheetApp.open(files.next());
+      Logger.log(`Found existing deck by name: ${targetSS.getName()}`);
+    } else {
+      // Fallback search with generic suffix
+      const suffixFiles = folder.getFilesByName(deckName);
+      if (suffixFiles.hasNext()) {
+        targetSS = SpreadsheetApp.open(suffixFiles.next());
+      } else {
+        targetSS = SpreadsheetApp.create(deckName);
+        Logger.log(`Created NEW deck: ${deckName}`);
+        const file = DriveApp.getFileById(targetSS.getId());
+        file.moveTo(folder);
+      }
+    }
   }
 
   let sheet = targetSS.getSheetByName(DECK_SHEET_NAME) || targetSS.insertSheet(DECK_SHEET_NAME);
