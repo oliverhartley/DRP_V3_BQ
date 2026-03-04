@@ -257,11 +257,11 @@ function refreshDashboardData2026(dashSheet) {
   }
 
   // 1. Get Selection
-  const typeSel = dashSheet.getRange(CELL_TYPE_2026.r, CELL_TYPE_2026.c).getValue();
-  const regionSel = dashSheet.getRange(CELL_SUB_REGION_2026.r, CELL_SUB_REGION_2026.c).getValue();
-  const pdmSel = dashSheet.getRange(CELL_PDM_2026.r, CELL_PDM_2026.c).getValue();
+  const typeSel = String(dashSheet.getRange(CELL_TYPE_2026.r, CELL_TYPE_2026.c).getValue()).trim();
+  const regionSel = String(dashSheet.getRange(CELL_SUB_REGION_2026.r, CELL_SUB_REGION_2026.c).getValue()).trim();
+  const pdmSel = String(dashSheet.getRange(CELL_PDM_2026.r, CELL_PDM_2026.c).getValue()).trim();
   const solutionSel = String(dashSheet.getRange(CELL_SOLUTION_2026.r, CELL_SOLUTION_2026.c).getValue()).trim();
-  const solutionSelArray = solutionSel === "All" ? ["All"] : solutionSel.split(',').map(s => s.trim());
+  const solutionSelArray = solutionSel === "All" ? ["All"] : solutionSel.split(',').map(s => s.trim().toLowerCase());
   const productSel = String(dashSheet.getRange(CELL_PRODUCT_2026.r, CELL_PRODUCT_2026.c).getValue()).trim();
 
   // 2. Read Cache
@@ -303,8 +303,8 @@ function refreshDashboardData2026(dashSheet) {
     effectiveHeaders.prod[c] = effectiveProd;
 
     let keepCol = true;
-    if (!solutionSelArray.includes("All") && !solutionSelArray.includes(effectiveSol)) keepCol = false;
-    if (productSel !== "All" && effectiveProd !== productSel) keepCol = false;
+    if (!solutionSelArray.includes("All") && !solutionSelArray.includes(effectiveSol.toLowerCase())) keepCol = false;
+    if (productSel !== "All" && effectiveProd.toLowerCase() !== productSel.toLowerCase()) keepCol = false;
     if (keepCol) columnsToKeep.push(c);
   }
 
@@ -335,9 +335,9 @@ function refreshDashboardData2026(dashSheet) {
     const rowPDM = String(cacheValues[r][4]).trim();
 
     let keepRow = true;
-    if (typeSel !== "All" && rowType !== typeSel) keepRow = false;
-    if (regionSel !== "All" && rowRegion !== regionSel) keepRow = false;
-    if (pdmSel !== "All" && rowPDM !== pdmSel) keepRow = false;
+    if (typeSel !== "All" && rowType.toLowerCase() !== typeSel.toLowerCase()) keepRow = false;
+    if (regionSel !== "All" && rowRegion.toLowerCase() !== regionSel.toLowerCase()) keepRow = false;
+    if (pdmSel !== "All" && rowPDM.toLowerCase() !== pdmSel.toLowerCase()) keepRow = false;
 
     if (keepRow) {
       let rowV = [], rowB = [], rowW = [], rowFC = [];
