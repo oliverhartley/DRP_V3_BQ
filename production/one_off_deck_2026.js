@@ -245,6 +245,16 @@ function formatTestDeepDivePivot(sheet, lastRow, lastCol, rawDataStartRow) {
   try {
     const startRow = 6;
     sheet.setFrozenRows(0); sheet.setFrozenColumns(0);
+
+    // Clear all existing column groups before applying new ones
+    const maxC = sheet.getMaxColumns();
+    for (let c = 1; c <= maxC; c++) {
+      let depth = sheet.getColumnGroupDepth(c);
+      if (depth > 0) {
+        sheet.getRange(1, c).shiftColumnGroupDepth(-depth);
+      }
+    }
+
     if (sheet.getMaxColumns() < lastCol) {
       sheet.insertColumnsAfter(sheet.getMaxColumns(), lastCol - sheet.getMaxColumns());
     }
