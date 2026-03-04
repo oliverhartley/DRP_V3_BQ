@@ -131,11 +131,15 @@ function runTestDeck2026() {
   const pivotedRows = [];
   pivotMap.forEach((value, key) => {
      const row = [...value.info];
+    const userSolutions = new Set();
      PRODUCT_SCHEMA.forEach(group => { 
         group.products.forEach(prodName => { 
-            row.push(value.scores[prodName] || "-"); 
+          const t = value.scores[prodName] || "-";
+          row.push(t);
+          if (t !== "-") userSolutions.add(group.solution);
         }); 
      });
+    row.push(Array.from(userSolutions).join(",")); // Hidden Solutions Column
      pivotedRows.push(row);
   });
   
@@ -221,7 +225,10 @@ function runTestDeck2026() {
       regions.unshift("All");
       const regionRule = SpreadsheetApp.newDataValidation().requireValueInList(regions).setAllowInvalid(false).build();
       diveOutSheet.getRange("B2").setDataValidation(regionRule).setValue("All");
-      diveOutSheet.getRange("B3").setValue("All (Column Filters)");
+
+    const solutions = ["All", ...PRODUCT_SCHEMA.map(g => g.solution)];
+    const solutionRule = SpreadsheetApp.newDataValidation().requireValueInList(solutions).setAllowInvalid(false).build();
+    diveOutSheet.getRange("B3").setDataValidation(solutionRule).setValue("All");
       
       formatTestDeepDivePivot(diveOutSheet, pivotedRows.length + 2, pivotedRows[0].length, rawDataStartRow);
   }
@@ -260,7 +267,11 @@ function formatTestDeepDivePivot(sheet, lastRow, lastCol, rawDataStartRow) {
     });
 
     const lastColLetter = columnToLetter(lastCol);
-    sheet.getRange(startRow + 1, 1).setFormula(`=IFERROR(FILTER(A${rawDataStartRow}:${lastColLetter}${rawDataStartRow + 1000}, (B${rawDataStartRow}:B${rawDataStartRow + 1000} = B2) + (B2="All")), "No data found")`);
+    const filterFormula = `=IFERROR(FILTER(A${rawDataStartRow}:${columnToLetter(lastCol - 1)}${rawDataStartRow + 1000}, ` +
+      `(B${rawDataStartRow}:B${rawDataStartRow + 1000} = B2) + (B2="All"), ` +
+      `ISNUMBER(SEARCH(B3, ${lastColLetter}${rawDataStartRow}:${lastColLetter}${rawDataStartRow + 1000})) + (B3="All")), "No data found")`;
+
+    sheet.getRange(startRow + 1, 1).setFormula(filterFormula);
 
     const dataRange = sheet.getRange(startRow + 1, 1, 500, lastCol);
     dataRange.setHorizontalAlignment("center");
