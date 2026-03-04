@@ -28,4 +28,6 @@ const SHEET_NAME_SCORE_2026 = "LATAM_Partner_Score_2026";
 const SHEET_NAME_DEEPDIVE_2026 = "LATAM_DeepDive_2026";
 const SHEET_NAME_SOURCE = "Consolidate by Partner"; // Name of the tab in the SOURCE_SS_ID
 const SHEET_NAME_DASHBOARD = "Partner / Region / Solution Selector";
+const SHEET_NAME_DASHBOARD_2026 = "LATAM_Partner_Dashboard_2026";
+const SHEET_NAME_CACHE_2026 = "CACHE_Dashboard_2026";
 const SHEET_NAME_LINKS = "System_Link_Cache";

@@ -47,6 +47,7 @@ function onOpen() {
     .addItem('📧 Send Email Summary (BATCH)', 'runBatchEmailSender')
       .addItem('🔗 Refresh Links (Manual)', 'runLinkUpdateManual') 
       .addItem('⚠️ Reset Dropdowns', 'setupDashboard')
+    .addItem('⚠️ Reset 2026 Dropdowns', 'setupDashboard2026')
       .addItem('🕒 Timestamp', 'updateTimestamp')
       .addToUi();
 }
