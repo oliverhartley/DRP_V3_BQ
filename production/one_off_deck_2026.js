@@ -217,11 +217,19 @@ function runTestDeck2026() {
       const rawDataStartRow = 1000;
       diveOutSheet.getRange(rawDataStartRow, 1, pivotedRows.length, pivotedRows[0].length).setValues(pivotedRows);
       
-      diveOutSheet.getRange("A1:D4").setBackground("#f3f3f3").setBorder(true, true, true, true, true, true);
-      diveOutSheet.getRange("A1").setValue("Partner & Solution Selector").setFontWeight("bold").setFontSize(12);
+    // Premium Formatting for Selector Box
+    diveOutSheet.getRange("A1:D4").clearFormat();
+    diveOutSheet.getRange("A1:D1").merge().setValue(" Partner & Solution Selector").setBackground("#4285f4").setFontColor("white").setFontWeight("bold").setFontSize(14).setVerticalAlignment("middle");
+    diveOutSheet.setRowHeight(1, 35);
+
+    diveOutSheet.getRange("A2:A3").setBackground("#e8f0fe").setFontWeight("bold").setHorizontalAlignment("right").setVerticalAlignment("middle").setBorder(true, true, true, true, true, true);
       diveOutSheet.getRange("A2").setValue("Select Sub-Region:");
       diveOutSheet.getRange("A3").setValue("Select Product:");
       
+    diveOutSheet.getRange("B2:B3").setBackground('white').setBorder(true, true, true, true, true, true).setVerticalAlignment("middle");
+    diveOutSheet.setColumnWidth(1, 150);
+    diveOutSheet.setColumnWidth(2, 250);
+
       const regions = [...new Set(pivotedRows.map(r => r[1]))].sort();
       regions.unshift("All");
       const regionRule = SpreadsheetApp.newDataValidation().requireValueInList(regions).setAllowInvalid(false).build();
@@ -260,7 +268,7 @@ function formatTestDeepDivePivot(sheet, lastRow, lastCol, rawDataStartRow) {
     }
     
     // UPDATED FIXED HEADERS TO INCLUDE SUB-REGION INSTEAD OF COUNTRY
-    const fixedHeaders = ["Profile ID", "Sub Region", "Job Title", "Tier 1 Count"];
+    const fixedHeaders = ["Profile ID", "Sub Region", "Job Title", "Soluciones en Nivel 1"];
     sheet.getRange(startRow, 1, 1, 4).setValues([fixedHeaders]);
     sheet.getRange(startRow - 1, 1, 1, 4).merge().setValue("Profile Details").setBackground("#666666").setFontColor("white").setFontWeight("bold").setHorizontalAlignment("center");
     sheet.getRange(startRow, 1, 1, 4).setBackground("#d9d9d9").setFontWeight("bold");
