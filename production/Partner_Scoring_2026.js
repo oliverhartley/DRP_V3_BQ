@@ -359,6 +359,8 @@ function formatScorePivotSheet2026(sheet) {
       sheet.autoResizeColumn(c);
     }
     
+    sheet.hideColumns(1, 2); // Hide Internal ID (A) and Partner ID (B)
+
   } catch (e) {
     console.error("Error during formatting: " + e.toString());
   }
