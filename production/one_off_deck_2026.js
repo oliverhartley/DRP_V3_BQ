@@ -267,6 +267,9 @@ function formatTestDeepDivePivot(sheet, lastRow, lastCol, rawDataStartRow) {
       sheet.insertColumnsAfter(sheet.getMaxColumns(), lastCol - sheet.getMaxColumns());
     }
     
+    // Ensure Column K wraps
+    sheet.getRange(1, 11, sheet.getMaxRows(), 1).setWrapStrategy(SpreadsheetApp.WrapStrategy.WRAP);
+
     // UPDATED FIXED HEADERS TO INCLUDE SUB-REGION INSTEAD OF COUNTRY
     const fixedHeaders = ["Profile ID", "Sub Region", "Job Title", "Soluciones en Nivel 1"];
     sheet.getRange(startRow, 1, 1, 4).setValues([fixedHeaders]);
