@@ -91,3 +91,76 @@ function check2026PartnerMatches() {
     Logger.log("ERROR in Match Check: " + e.toString());
   }
 }
+
+function backfillSpreadsheetLinks2026() {
+  const ss = SpreadsheetApp.openById(DESTINATION_SS_ID);
+  const dbSheet = ss.getSheetByName('LATAM_Partner_DB_2026');
+
+  if (!dbSheet) {
+    Logger.log("Error: LATAM_Partner_DB_2026 sheet not found.");
+    return;
+  }
+
+  const lastRow = dbSheet.getLastRow();
+  // Assume Partner Name is in Col A (1)
+  // We want to write ID to Col F (6) and URL to Col G (7)
+  const dataRange = dbSheet.getRange(2, 1, lastRow - 1, 1);
+  const partnerNames = dataRange.getValues();
+
+  // Track which rows belong to which partner (1-based index)
+  const rowMap = {};
+  for (let i = 0; i < partnerNames.length; i++) {
+    const pName = String(partnerNames[i][0]).trim();
+    if (!pName) continue;
+    if (!rowMap[pName]) rowMap[pName] = [];
+    rowMap[pName].push(i + 2);
+  }
+
+  Logger.log(`Found ${Object.keys(rowMap).length} unique partners in DB.`);
+
+  // Create header if missing
+  dbSheet.getRange("F1").setValue("Spreadsheet_ID").setBackground("#d9d9d9").setFontWeight("bold");
+  dbSheet.getRange("G1").setValue("Spreadsheet_URL").setBackground("#d9d9d9").setFontWeight("bold");
+
+  // Scan the target folder for existing decks
+  // Assuming DESTINATION_FOLDER_ID is defined in Config.js
+  if (typeof DESTINATION_FOLDER_ID === 'undefined') {
+    Logger.log("Error: DESTINATION_FOLDER_ID not found in Config. Please define it or hardcode the folder ID here.");
+    return;
+  }
+
+  const folder = DriveApp.getFolderById(DESTINATION_FOLDER_ID);
+  const files = folder.getFilesByType(MimeType.GOOGLE_SHEETS);
+  let matchCount = 0;
+
+  while (files.hasNext()) {
+    const file = files.next();
+    const fileName = file.getName();
+
+    // Decks are usually named "Partner Name - 2026 Deck" or similar.
+    // We try to find a DB partner name that is completely contained within the file name.
+    let matchedPartner = null;
+    for (const pName of Object.keys(rowMap)) {
+      // Very basic inclusion check. Might need refinement based on exact naming convention.
+      if (fileName.toLowerCase().includes(pName.toLowerCase())) {
+        matchedPartner = pName;
+        break;
+      }
+    }
+
+    if (matchedPartner) {
+      const fileId = file.getId();
+      const fileUrl = file.getUrl();
+
+      const rowsToUpdate = rowMap[matchedPartner];
+      for (const r of rowsToUpdate) {
+        dbSheet.getRange(r, 6).setValue(fileId);
+        dbSheet.getRange(r, 7).setValue(fileUrl);
+      }
+      matchCount++;
+      Logger.log(`Mapped: ${matchedPartner} -> ${fileUrl}`);
+    }
+  }
+
+  Logger.log(`Backfill Complete! Updated ${matchCount} partner spreadsheets.`);
+}
