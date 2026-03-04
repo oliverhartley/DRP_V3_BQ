@@ -85,7 +85,6 @@ function getDeepDiveSql2026(virtualTableData) {
     "            (sheet.sub_region = 'MCO' AND t1.profile_details.residing_country NOT IN ('Brazil', 'Mexico') AND t1.profile_details.residing_country IN ('Argentina', 'Bolivia', 'Chile', 'Colombia', 'Costa Rica', 'Cuba', 'Dominican Republic', 'Ecuador', 'El Salvador', 'Guatemala', 'Honduras', 'Nicaragua', 'Panama', 'Paraguay', 'Peru', 'Uruguay', 'Venezuela'))",
     "        )",
     "    LEFT JOIN UNNEST(t1.profile_details.score_details) AS scores",
-    "    WHERE scores.scored_product IS NOT NULL", // Ensure we only get actual scored profiles
     ")",
     "SELECT *",
     "FROM RawProfileData",

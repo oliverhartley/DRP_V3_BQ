@@ -110,15 +110,15 @@ function runTestDeck2026() {
   
   // Pivot the deep dive data
   // 2026 Deep Dive mapping:
-  // [0] Internal ID, [1] Partner Name (D/E?), [2] Partner Name, [3] Sub Region, [4] PDM, [5] Type
-  // [6] Timestamp, [7] Profile ID, [8] Country, [9] Job Title, [10] Solution, [11] Product, [12] Score, [13] Tier
+  // [0] internal_id, [1] partner_id, [2] partner_name, [3] sub_region, [4] pdm, [5] partner_type
+  // [6] profile_id, [7] residing_country, [8] job_title, [9] scored_product, [10] score, [11] practitioner_tier, [12] scored_solution
   const pivotMap = new Map();
   deepDiveData.forEach(row => {
-     const profileId = String(row[7]);
-     const country = String(row[8]);
-     const jobTitle = String(row[9]);
-     const product = String(row[11]);
-     const tier = String(row[13]);
+    const profileId = String(row[6]);
+    const country = String(row[7]);
+    const jobTitle = String(row[8]);
+    const product = String(row[9]);
+    const tier = String(row[11]);
      const subRegion = String(row[3]); // WE NEED THIS FOR THE SLICER NOW
      
      if (!pivotMap.has(profileId)) {
@@ -228,6 +228,7 @@ function runTestDeck2026() {
   
   const defaultSheet = testSS.getSheetByName("Sheet1"); if (defaultSheet) testSS.deleteSheet(defaultSheet);
   
+  ensurePartnerImages(sheet);
   Logger.log("DONE! Link: " + testSS.getUrl());
 }
 

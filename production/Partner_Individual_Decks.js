@@ -403,11 +403,18 @@ function formatDeckSheet(sheet, lastRow, lastCol, diveSheetName) {
     const applyBlockFormat = (startRow, endRow, val) => {
       const span = endRow - startRow;
       sheet.getRange(startRow, 1, span, 7).setBackground(colorMap[val] || '#ffffff');
-        if (span > 0) { sheet.getRange(startRow, 1, span, 1).merge(); sheet.setRowHeights(startRow, span === 1 ? 1 : span, span === 1 ? 90 : 35); }
+      if (span > 0) {
+        sheet.getRange(startRow, 1, span, 1).merge();
+        let h = 35;
+        if (span === 1) h = 90;
+        else if (span === 2) h = 52;
+        else if (span === 4) h = 40;
+        sheet.setRowHeights(startRow, span, h);
+      }
     };
     for (let i = 1; i < values.length; i++) { if (values[i][0] !== currentVal) { applyBlockFormat(mergeStartRow, i+2, currentVal); mergeStartRow = i+2; currentVal = values[i][0]; } }
     applyBlockFormat(mergeStartRow, lastRow + 1, currentVal);
-    sheet.setColumnWidth(1, 40); // Adjusted width for vertical text
+    sheet.setColumnWidth(1, 75); // Adjusted width for vertical text
     sheet.setColumnWidth(2, 250);
     sheet.setColumnWidths(3, 4, 60);
     sheet.setColumnWidth(9, 100); sheet.setColumnWidth(10, 100); sheet.setColumnWidth(11, 100);
