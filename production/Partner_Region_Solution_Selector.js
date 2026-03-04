@@ -32,8 +32,20 @@ function setLoadingStatus(sheet, isLoading) {
 }
 
 function onEdit(e) {
+  if (!e || !e.source) return;
   const sheet = e.source.getActiveSheet();
-  if (sheet.getName() !== SHEET_NAME_DASHBOARD) return;
+  const sheetName = sheet.getName();
+
+  // Route 2026 Dashboard edits
+  if (typeof SHEET_NAME_DASHBOARD_2026 !== 'undefined' && sheetName === SHEET_NAME_DASHBOARD_2026) {
+    if (typeof onEdit2026 === 'function') {
+      onEdit2026(e);
+      return;
+    }
+  }
+
+  // Original 2025 Dashboard Logic
+  if (sheetName !== SHEET_NAME_DASHBOARD) return;
   
   const row = e.range.getRow();
   const col = e.range.getColumn();
