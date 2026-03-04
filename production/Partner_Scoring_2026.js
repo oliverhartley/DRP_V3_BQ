@@ -50,7 +50,7 @@ function getScorePivotSql2026(virtualTableData) {
     "        t2.sub_region,",
     "        t2.pdm,",
     "        t2.partner_type,",
-    "        COUNT(DISTINCT t2.profile_id) AS Total_Profiles,",
+    "        COUNT(DISTINCT t2.profile_id) AS Profiles_per_Region,",
     "",
     "        -- INFRASTRUCTURE MODERNIZATION",
     "        COUNT(CASE WHEN t2.scored_solution = 'Infrastructure Modernization' AND t2.scored_product = 'Google Compute Engine' AND t2.practitioner_tier = 'Tier 1' THEN 1 END) AS Infra_GCE_Tier1,",
@@ -194,6 +194,11 @@ function getScorePivotSql2026(virtualTableData) {
   sqlParts.push("                Spreadsheet_Data AS sheet");
   sqlParts.push("            LEFT JOIN `concord-prod.service_partnercoe.drp_partner_master` AS t1");
   sqlParts.push("              ON t1.partner_id = sheet.partner_id");
+  sqlParts.push("              AND (");
+  sqlParts.push("                  (sheet.sub_region = 'Brazil' AND t1.profile_details.residing_country = 'Brazil') OR");
+  sqlParts.push("                  (sheet.sub_region = 'Mexico' AND t1.profile_details.residing_country = 'Mexico') OR");
+  sqlParts.push("                  (sheet.sub_region = 'MCO' AND t1.profile_details.residing_country NOT IN ('Brazil', 'Mexico') AND t1.profile_details.residing_country IN ('Argentina', 'Bolivia', 'Chile', 'Colombia', 'Costa Rica', 'Cuba', 'Dominican Republic', 'Ecuador', 'El Salvador', 'Guatemala', 'Honduras', 'Nicaragua', 'Panama', 'Paraguay', 'Peru', 'Uruguay', 'Venezuela'))");
+  sqlParts.push("              )");
   sqlParts.push("            LEFT JOIN UNNEST(t1.profile_details.score_details) AS scores");
   sqlParts.push("        ) AS t2");
   sqlParts.push("    GROUP BY");
@@ -225,10 +230,10 @@ function formatScorePivotSheet2026(sheet) {
     // D: sub_region
     // E: pdm
     // F: partner_type
-    // G: Total_Profiles
+    // G: Profiles_per_Region
 
     // Freeze Cols and Rows
-    sheet.setFrozenColumns(7); // Freeze up to Total_Profiles
+    sheet.setFrozenColumns(7); // Freeze up to Profiles_per_Region
     sheet.setFrozenRows(3);
 
     // Setup headers for Metadata columns
@@ -239,8 +244,8 @@ function formatScorePivotSheet2026(sheet) {
     sheet.getRange("E1").setValue("PDM");
     sheet.getRange("F1").setValue("Type of Partner");
     
-    // FORMAT COLUMN G (Total Profiles)
-    sheet.getRange("G1").setValue("Total Profiles").setBackground("#d9d9d9").setFontWeight("bold").setHorizontalAlignment("center");
+    // FORMAT COLUMN G (Profiles per Region)
+    sheet.getRange("G1").setValue("Profiles per Region").setBackground("#d9d9d9").setFontWeight("bold").setHorizontalAlignment("center");
     sheet.getRange("G1:G3").merge(); // Merge the header rows 1-3 for this column
     sheet.setColumnWidth(7, 80);
     if (lastRow > 3) {
