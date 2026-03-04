@@ -296,8 +296,8 @@ function formatTestDeepDivePivot(sheet, lastRow, lastCol, rawDataStartRow) {
 
         // Add Native Column Grouping
         sheet.getRange(1, currentCol, 1, numProducts).shiftColumnGroupDepth(1);
-        const group = sheet.getColumnGroup(currentCol, 1);
-        if (group) group.collapse();
+        const colGroup = sheet.getColumnGroup(currentCol, 1);
+        if (colGroup) colGroup.collapse();
 
         currentCol += numProducts;
       }
