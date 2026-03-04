@@ -191,7 +191,8 @@ function generateDeckForPartner2026(partnerName, existingDeckId = null) {
   }
 
   if (!targetSS) {
-    const files = folder.getFilesByName(partnerName); // Try searching purely by partner name per 2025 naming convention
+    const oldDeckName = `${partnerName} - Partner Dashboard`; // Exactly match the 2025 naming convention
+    const files = folder.getFilesByName(oldDeckName); 
     if (files.hasNext()) {
       targetSS = SpreadsheetApp.open(files.next());
       Logger.log(`Found existing deck by name: ${targetSS.getName()}`);
