@@ -274,7 +274,16 @@ function formatTestDeepDivePivot(sheet, lastRow, lastCol, rawDataStartRow) {
     sheet.getRange(startRow, 1, 1, 4).setBackground("#d9d9d9").setFontWeight("bold");
     let currentCol = 5; 
     PRODUCT_SCHEMA.forEach((group, index) => {
-      sheet.setColumnWidth(currentCol, 15); // Format the spacer column safely
+      // Format the spacer column to act as a collapsed header
+      sheet.getRange(1, currentCol, 6, 1).merge()
+        .setValue(group.solution)
+        .setBackground(group.color)
+        .setFontWeight("bold")
+        .setHorizontalAlignment("center")
+        .setVerticalAlignment("middle")
+        .setTextRotation(90)
+        .setBorder(true, true, true, true, true, true);
+      sheet.setColumnWidth(currentCol, 40); 
       currentCol++;
 
       const numProducts = group.products.length;
