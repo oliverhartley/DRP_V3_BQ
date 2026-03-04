@@ -262,9 +262,16 @@ function formatTestDeepDivePivot(sheet, lastRow, lastCol, rawDataStartRow) {
         const prodRange = sheet.getRange(startRow, currentCol, 1, numProducts);
         prodRange.setValues([group.products]).setBackground(group.color).setFontWeight("bold").setHorizontalAlignment("center").setWrapStrategy(SpreadsheetApp.WrapStrategy.WRAP).setVerticalAlignment("middle").setBorder(true, true, true, true, true, true);
         sheet.setColumnWidths(currentCol, numProducts, 100);
+
+        // Add Native Column Grouping
+        sheet.getRange(1, currentCol, 1, numProducts).shiftColumnGroupDepth(1);
+
         currentCol += numProducts;
       }
     });
+
+    // Set group control toggles to appear above the headers
+    sheet.setColumnGroupControlPosition(SpreadsheetApp.GroupControlTogglePosition.BEFORE);
 
     const lastColLetter = columnToLetter(lastCol);
     const filterFormula = `=IFERROR(FILTER(A${rawDataStartRow}:${columnToLetter(lastCol - 1)}${rawDataStartRow + 1000}, ` +
