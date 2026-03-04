@@ -133,7 +133,7 @@ function runTestDeck2026() {
      const row = [...value.info];
     const userSolutions = new Set();
     PRODUCT_SCHEMA.forEach((group, index) => {
-      if (index > 0) row.push(""); // Spacer column to break grouping
+      row.push(""); // Spacer column to break grouping
         group.products.forEach(prodName => { 
           const t = value.scores[prodName] || "-";
           row.push(t);
@@ -256,11 +256,9 @@ function formatTestDeepDivePivot(sheet, lastRow, lastCol, rawDataStartRow) {
     sheet.getRange(startRow, 1, 1, 4).setBackground("#d9d9d9").setFontWeight("bold");
     let currentCol = 5; 
     PRODUCT_SCHEMA.forEach((group, index) => {
-      if (index > 0) {
-        sheet.setColumnWidth(currentCol, 15); // Format the spacer column safely
-        // sheet.getRange(startRow - 1, currentCol, 2, 1).setBackground("#f3f3f3");
-        currentCol++;
-      }
+      sheet.setColumnWidth(currentCol, 15); // Format the spacer column safely
+      currentCol++;
+
       const numProducts = group.products.length;
       if (numProducts > 0) {
         const solRange = sheet.getRange(startRow - 1, currentCol, 1, numProducts);
