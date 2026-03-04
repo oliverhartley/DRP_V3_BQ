@@ -46,6 +46,9 @@ function getSpreadsheetData2026AsSqlStruct() {
   return structList.join(',\n');
 }
 
+/* --- DISABLED BY USER 2026-03-04 ---
+The LATAM_Partner_DB_2026 sheet is now considered the static source of truth.
+
 function runBigQueryQuery2026() {
   try {
     Logger.log("Generating virtual table from 2026 spreadsheet...");
@@ -180,3 +183,4 @@ function runBigQueryQuery2026() {
     Logger.log("ERROR 2026: " + e.toString()); 
   }
 }
+*/
