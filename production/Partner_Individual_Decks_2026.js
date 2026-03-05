@@ -370,7 +370,7 @@ function formatDeckSheet2026(sheet, lastRow, lastCol, diveSheetName) {
       let val = (i <= lastRow) ? String(sheet.getRange(i, 1).getValue()).trim() : null;
       if (val !== currentVal) {
         if (i - startRow > 1) {
-          sheet.getRange(startRow, 1, i - startRow, 1).mergeVertical().setVerticalAlignment("middle");
+          sheet.getRange(startRow, 1, i - startRow, 1).merge().setVerticalAlignment("middle");
         }
         currentVal = val;
         startRow = i;
