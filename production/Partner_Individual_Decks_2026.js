@@ -363,15 +363,25 @@ function formatDeckSheet2026(sheet, lastRow, lastCol, diveSheetName) {
     // Auto-resize product column
     sheet.setColumnWidth(2, 230);
 
-    // --- MERGE SOLUTION CELLS VERTICALLY ---
+    // --- MERGE SOLUTION CELLS VERTICALLY AND SET SIZES ---
+    sheet.setColumnWidth(1, 75); // Adjusted width for vertical text
     let startRow = 2;
     let currentVal = String(sheet.getRange(2, 1).getValue()).trim();
     for (let i = 3; i <= lastRow + 1; i++) {
       let val = (i <= lastRow) ? String(sheet.getRange(i, 1).getValue()).trim() : null;
       if (val !== currentVal) {
-        if (i - startRow > 1) {
-          sheet.getRange(startRow, 1, i - startRow, 1).merge().setVerticalAlignment("middle");
+        const span = i - startRow;
+        if (span > 1) {
+          sheet.getRange(startRow, 1, span, 1).merge().setVerticalAlignment("middle");
         }
+
+        // Apply row heights based on old 2025 formatting logic
+        let h = 35;
+        if (span === 1) h = 90;
+        else if (span === 2) h = 52;
+        else if (span === 4) h = 40;
+        sheet.setRowHeights(startRow, span, h);
+
         currentVal = val;
         startRow = i;
       }
