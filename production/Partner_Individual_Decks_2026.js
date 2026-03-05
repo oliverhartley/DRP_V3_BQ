@@ -252,7 +252,7 @@ function generateDeckForPartner2026(partnerName, existingDeckId = null) {
     sheet.getRange("N2").setFormula(`=IF(M2="All", ${totalProfilesActual}, SUMPRODUCT((TRIM('Profile Deep Dive'!$B$1000:$B)=M2)*1))`);
     sheet.getRange("N2").setBackground("white").setFontSize(12).setHorizontalAlignment("center").setVerticalAlignment("middle").setBorder(true, true, true, true, true, true);
 
-    formatDeckSheet(sheet, dashboardData.length, dashboardData[0].length, "Profile Deep Dive");
+    formatDeckSheet2026(sheet, dashboardData.length, dashboardData[0].length, "Profile Deep Dive");
   }
 
   // WRITE DEEP DIVE
@@ -301,4 +301,68 @@ function generateDeckForPartner2026(partnerName, existingDeckId = null) {
   ensurePartnerImages(sheet);
 
   return { id: targetSS.getId(), url: targetSS.getUrl() };
+}
+
+function formatDeckSheet2026(sheet, lastRow, lastCol, diveSheetName) {
+  try {
+    const colorMap = { 'Infrastructure Modernization': '#fce5cd', 'Application Modernization': '#fff2cc', 'Databases': '#d9ead3', 'Data & Analytics': '#d0e0e3', 'Artificial Intelligence': '#c9daf8', 'Security': '#cfe2f3', 'Workspace': '#d9d2e9' };
+    sheet.getRange(1, 1, 1, lastCol).setBackground("#4285f4").setFontColor("white").setFontWeight("bold").setHorizontalAlignment("center");
+    const fullTable = sheet.getRange(1, 1, lastRow, lastCol);
+    fullTable.setBorder(true, true, true, true, true, true).setVerticalAlignment("middle");
+    const solutionCol = sheet.getRange(2, 1, lastRow - 1, 1);
+    solutionCol.setWrapStrategy(SpreadsheetApp.WrapStrategy.WRAP).setHorizontalAlignment("center").setTextRotation(90).setFontWeight("bold");
+    sheet.getRange(2, 3, lastRow - 1, 4).setHorizontalAlignment("center");
+
+    // --- FORMAT COLUMN G (Es Producto Foco) ---
+    sheet.getRange(1, 7).setBackground("#e69138").setFontColor("white").setFontWeight("bold").setHorizontalAlignment("center").setBorder(true, true, true, true, true, true).setWrapStrategy(SpreadsheetApp.WrapStrategy.WRAP);
+    sheet.setColumnWidth(7, 100);
+    sheet.getRange(2, 7, lastRow - 1, 1).setBorder(true, true, true, true, true, true).setHorizontalAlignment("center");
+
+    // --- MAP EXACT COLUMNS FOR FORMULAS ---
+    const productColMap = {};
+    let currentDeepDiveColIdx = 5; // A=1(Profile), B=2(SubRegion), C=3(JobTitle), D=4(Tier1 Count)
+
+    // In pivotedRows, we push: Spacer -> Prod 1 -> Prod 2 ...
+    PRODUCT_SCHEMA.forEach(group => {
+      currentDeepDiveColIdx++; // Skip Spacer
+      group.products.forEach(prod => {
+        productColMap[prod.toLowerCase()] = columnToLetter(currentDeepDiveColIdx);
+        currentDeepDiveColIdx++;
+      });
+    });
+
+    for (let i = 2; i <= lastRow; i++) {
+      const product = String(sheet.getRange(i, 2).getValue()).trim();
+      const solution = String(sheet.getRange(i, 1).getValue()).trim();
+      if (solution && colorMap[solution]) {
+        sheet.getRange(i, 1, 1, lastCol).setBackground(colorMap[solution]);
+      }
+
+      if (product) {
+        const colLetter = productColMap[product.toLowerCase()];
+        if (colLetter) {
+          const rangeB = `'${diveSheetName}'!$B$1000:$B`;
+          const rangeCol = `'${diveSheetName}'!$${colLetter}$1000:$${colLetter}`;
+
+          sheet.getRange(i, 3).setFormula(`=IF($M$2="All", COUNTIFS(${rangeCol}, "Tier 1"), SUMPRODUCT((TRIM(${rangeB})=$M$2)*(${rangeCol}="Tier 1")))`);
+          sheet.getRange(i, 4).setFormula(`=IF($M$2="All", COUNTIFS(${rangeCol}, "Tier 2"), SUMPRODUCT((TRIM(${rangeB})=$M$2)*(${rangeCol}="Tier 2")))`);
+          sheet.getRange(i, 5).setFormula(`=IF($M$2="All", COUNTIFS(${rangeCol}, "Tier 3"), SUMPRODUCT((TRIM(${rangeB})=$M$2)*(${rangeCol}="Tier 3")))`);
+          sheet.getRange(i, 6).setFormula(`=IF($M$2="All", COUNTIFS(${rangeCol}, "Tier 4"), SUMPRODUCT((TRIM(${rangeB})=$M$2)*(${rangeCol}="Tier 4")))`);
+        }
+      }
+    }
+    // Apply custom number format to show hyphen for zero
+    sheet.getRange(2, 3, lastRow - 1, 4).setNumberFormat('0;-0;"-"');
+
+    const headerRange = sheet.getRange("I1:K1");
+    headerRange.setBackground("#4285f4").setFontColor("white").setFontWeight("bold").setHorizontalAlignment("center").setBorder(true, true, true, true, true, true).setWrapStrategy(SpreadsheetApp.WrapStrategy.WRAP);
+
+    const valueRange = sheet.getRange("I2:K2");
+    valueRange.setBackground("white").setFontSize(12).setHorizontalAlignment("center").setVerticalAlignment("middle").setBorder(true, true, true, true, true, true);
+
+    // Auto-resize product column
+    sheet.setColumnWidth(2, 230);
+  } catch (e) {
+    Logger.log("Error in formatDeckSheet2026: " + e.toString());
+  }
 }
