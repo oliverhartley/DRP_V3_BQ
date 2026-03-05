@@ -57,6 +57,81 @@ function runAccentureTestBatch2026() {
   Logger.log(`>>> TARGETED TEST COMPLETE <<<`);
 }
 
+const MAX_DECK_EXECUTION_TIME_MS_2026 = 1500000; // 25 minutes
+
+function runFullBatchDecks2026() {
+  const startTime = new Date().getTime();
+  const currentBatchId = getDeckBatchId2026();
+  Logger.log(`>>> STARTING FULL BATCH 2026 [Batch ID: ${currentBatchId}] <<<`);
+
+  const ss = SpreadsheetApp.openById(DESTINATION_SS_ID);
+  const dbSheet = ss.getSheetByName(SHEET_NAME_2026);
+  if (!dbSheet) return;
+
+  const dbData = dbSheet.getDataRange().getValues();
+
+  // Set up header for Status if needed in Col K (11)
+  dbSheet.getRange("K1").setValue("Deck_Status").setBackground("#d9d9d9").setFontWeight("bold");
+
+  // Group matched partners
+  const partnersToProcess = new Map();
+
+  for (let i = 1; i < dbData.length; i++) {
+    const isMatched = String(dbData[i][6]).trim().toUpperCase(); // Col G
+    if (isMatched === "TRUE") {
+      const pName = String(dbData[i][0]).trim();
+      if (!pName) continue;
+
+      const key = pName.toLowerCase();
+      if (!partnersToProcess.has(key)) {
+        partnersToProcess.set(key, {
+          name: pName,
+          rows: [],
+          existingId: String(dbData[i][8]).trim() || null, // Col I
+          status: String(dbData[i][10]).trim() // Col K
+        });
+      }
+      partnersToProcess.get(key).rows.push(i + 1); // 1-based indices
+    }
+  }
+
+  const pKeys = Array.from(partnersToProcess.keys());
+  Logger.log(`Found ${pKeys.length} unique matched partners.`);
+
+  for (let idx = 0; idx < pKeys.length; idx++) {
+    const pData = partnersToProcess.get(pKeys[idx]);
+
+    // Check execution time
+    if (new Date().getTime() - startTime > MAX_DECK_EXECUTION_TIME_MS_2026) {
+      Logger.log("WARNING: Time limit approaching. Stopping to allow safe resume.");
+      break;
+    }
+
+    if (pData.status === currentBatchId) {
+      Logger.log(`[${idx + 1}/${pKeys.length}] Skipping ${pData.name} (Already processed this batch).`);
+      continue;
+    }
+
+    Logger.log(`[${idx + 1}/${pKeys.length}] Processing: ${pData.name}...`);
+    try {
+      const result = generateDeckForPartner2026(pData.name, pData.existingId);
+      if (result && result.url) {
+        // Update all associated rows with links and status
+        for (const r of pData.rows) {
+          dbSheet.getRange(r, 9).setValue(result.id);       // Col I
+          dbSheet.getRange(r, 10).setValue(result.url);     // Col J
+          dbSheet.getRange(r, 11).setValue(currentBatchId); // Col K
+        }
+      }
+      Utilities.sleep(1000);
+    } catch (e) {
+      Logger.log(`ERROR processing ${pData.name}: ${e.toString()}`);
+    }
+  }
+
+  Logger.log(`>>> FULL BATCH COMPLETE <<<`);
+}
+
 function getDeckBatchId2026() {
   const now = new Date();
   const shiftedDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
