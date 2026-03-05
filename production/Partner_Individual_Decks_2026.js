@@ -362,6 +362,21 @@ function formatDeckSheet2026(sheet, lastRow, lastCol, diveSheetName) {
 
     // Auto-resize product column
     sheet.setColumnWidth(2, 230);
+
+    // --- MERGE SOLUTION CELLS VERTICALLY ---
+    let startRow = 2;
+    let currentVal = String(sheet.getRange(2, 1).getValue()).trim();
+    for (let i = 3; i <= lastRow + 1; i++) {
+      let val = (i <= lastRow) ? String(sheet.getRange(i, 1).getValue()).trim() : null;
+      if (val !== currentVal) {
+        if (i - startRow > 1) {
+          sheet.getRange(startRow, 1, i - startRow, 1).mergeVertical().setVerticalAlignment("middle");
+        }
+        currentVal = val;
+        startRow = i;
+      }
+    }
+
   } catch (e) {
     Logger.log("Error in formatDeckSheet2026: " + e.toString());
   }
