@@ -29,9 +29,9 @@ function runAccentureTestBatch2026() {
   for (let i = 1; i < dbData.length; i++) {
     if (String(dbData[i][0]).trim().toLowerCase() === testPartner.toLowerCase()) {
       partnerRows.push(i + 1); // 1-based row index
-      // Col L is index 11
-      if (!existingDeckId && dbData[i][11]) {
-        existingDeckId = String(dbData[i][11]).trim();
+      // Col I is index 8
+      if (!existingDeckId && dbData[i][8]) {
+        existingDeckId = String(dbData[i][8]).trim();
       }
     }
   }
@@ -47,10 +47,10 @@ function runAccentureTestBatch2026() {
 
   if (result && result.url) {
     Logger.log(`Deck Generated! Updating Database Links...`);
-    // Write links back to all corresponding DB rows in Col L (12) and M (13)
+    // Write links back to all corresponding DB rows in Col I (9) and J (10)
     for (const r of partnerRows) {
-      dbSheet.getRange(r, 12).setValue(result.id);
-      dbSheet.getRange(r, 13).setValue(result.url);
+      dbSheet.getRange(r, 9).setValue(result.id);
+      dbSheet.getRange(r, 10).setValue(result.url);
     }
   }
 

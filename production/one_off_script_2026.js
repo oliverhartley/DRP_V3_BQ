@@ -103,7 +103,7 @@ function backfillSpreadsheetLinks2026() {
 
   const lastRow = dbSheet.getLastRow();
   // Assume Partner Name is in Col A (1)
-  // We want to write ID to Col L (12) and URL to Col M (13)
+  // We want to write ID to Col I (9) and URL to Col J (10)
   const dataRange = dbSheet.getRange(2, 1, lastRow - 1, 1);
   const partnerNames = dataRange.getValues();
 
@@ -119,8 +119,8 @@ function backfillSpreadsheetLinks2026() {
   Logger.log(`Found ${Object.keys(rowMap).length} unique partners in DB.`);
 
   // Create header if missing
-  dbSheet.getRange("L1").setValue("Spreadsheet_ID").setBackground("#d9d9d9").setFontWeight("bold");
-  dbSheet.getRange("M1").setValue("Spreadsheet_URL").setBackground("#d9d9d9").setFontWeight("bold");
+  dbSheet.getRange("I1").setValue("Spreadsheet_ID").setBackground("#d9d9d9").setFontWeight("bold");
+  dbSheet.getRange("J1").setValue("Spreadsheet_URL").setBackground("#d9d9d9").setFontWeight("bold");
 
   // Scan the target folder for existing decks
   // Assuming DESTINATION_FOLDER_ID is defined in Config.js
@@ -154,8 +154,8 @@ function backfillSpreadsheetLinks2026() {
 
       const rowsToUpdate = rowMap[matchedPartner];
       for (const r of rowsToUpdate) {
-        dbSheet.getRange(r, 12).setValue(fileId);
-        dbSheet.getRange(r, 13).setValue(fileUrl);
+        dbSheet.getRange(r, 9).setValue(fileId);
+        dbSheet.getRange(r, 10).setValue(fileUrl);
       }
       matchCount++;
       Logger.log(`Mapped: ${matchedPartner} -> ${fileUrl}`);
