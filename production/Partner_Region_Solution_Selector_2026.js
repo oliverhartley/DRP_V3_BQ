@@ -308,6 +308,16 @@ function refreshDashboardData2026(dashSheet) {
     if (keepCol) columnsToKeep.push(c);
   }
 
+  // Read DB to get URLs for Hyperlinking
+  const dbSheet = ss.getSheetByName(SHEET_NAME_2026);
+  const dbData = dbSheet ? dbSheet.getDataRange().getValues() : [];
+  const partnerUrlMap = new Map();
+  for (let i = 1; i < dbData.length; i++) {
+    const pName = String(dbData[i][0]).trim();
+    const url = String(dbData[i][9]).trim(); // Col J (Index 9)
+    if (pName && url) partnerUrlMap.set(pName.toLowerCase(), url);
+  }
+
   // 4. Build Output Data
   let outputValues = [], outputBackgrounds = [], outputWeights = [], outputFontColors = [];
 
@@ -366,6 +376,21 @@ function refreshDashboardData2026(dashSheet) {
     targetRange.setBackgrounds(outputBackgrounds);
     targetRange.setFontWeights(outputWeights);
     targetRange.setFontColors(outputFontColors);
+
+    // Apply Hyperlinks to Partner Names
+    let richTexts = [];
+    for (let i = 3; i < outputValues.length; i++) {
+      const pName = String(outputValues[i][0]);
+      const url = partnerUrlMap.get(pName.trim().toLowerCase());
+      if (url && url !== "") {
+        richTexts.push([SpreadsheetApp.newRichTextValue().setText(pName).setLinkUrl(url).build()]);
+      } else {
+        richTexts.push([SpreadsheetApp.newRichTextValue().setText(pName).build()]);
+      }
+    }
+    if (richTexts.length > 0) {
+      dashSheet.getRange(DATA_START_ROW_2026 + 3, 1, richTexts.length, 1).setRichTextValues(richTexts);
+    }
 
     targetRange.setHorizontalAlignment("center");
     dashSheet.getRange(DATA_START_ROW_2026, 1, outRows, 1).setHorizontalAlignment("left"); // Partner Name
