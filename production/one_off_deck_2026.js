@@ -277,8 +277,8 @@ function formatTestDeepDivePivot(sheet, lastRow, lastCol, rawDataStartRow) {
     sheet.getRange(startRow, 1, 1, 4).setBackground("#d9d9d9").setFontWeight("bold");
     let currentCol = 5; 
     PRODUCT_SCHEMA.forEach((group, index) => {
-      // Format the spacer column to act as a collapsed header
-      sheet.getRange(1, currentCol, 6, 1).merge()
+      // Format the spacer column to act as a collapsed header (Rows 1 to 5)
+      sheet.getRange(1, currentCol, 5, 1).merge()
         .setValue(group.solution)
         .setBackground(group.color)
         .setFontWeight("bold")
@@ -286,6 +286,11 @@ function formatTestDeepDivePivot(sheet, lastRow, lastCol, rawDataStartRow) {
         .setVerticalAlignment("middle")
         .setTextRotation(90)
         .setWrapStrategy(SpreadsheetApp.WrapStrategy.WRAP)
+        .setBorder(true, true, true, true, true, true);
+        
+      // Format row 6 of the spacer column to hold the filter nicely
+      sheet.getRange(6, currentCol, 1, 1)
+        .setBackground(group.color)
         .setBorder(true, true, true, true, true, true);
       sheet.setColumnWidth(currentCol, 40); 
       currentCol++;
@@ -326,6 +331,12 @@ function formatTestDeepDivePivot(sheet, lastRow, lastCol, rawDataStartRow) {
     const rule3 = SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo("Tier 3").setBackground("#fce5cd").setRanges([scoreArea]).build();
     const rule4 = SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo("Tier 4").setBackground("#f4cccc").setRanges([scoreArea]).build();
     sheet.setConditionalFormatRules([rule1, rule2, rule3, rule4]);
+
+    // Apply Filter to Row 6 (startRow) across the visible columns
+    const filterRange = sheet.getRange(startRow, 1, 500, lastCol);
+    const existingFilter = sheet.getFilter();
+    if (existingFilter) existingFilter.remove();
+    filterRange.createFilter();
 
     sheet.setFrozenRows(startRow);
     sheet.setFrozenColumns(4); 
