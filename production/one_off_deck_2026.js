@@ -271,10 +271,10 @@ function formatTestDeepDivePivot(sheet, lastRow, lastCol, rawDataStartRow) {
     sheet.getRange(1, 11, sheet.getMaxRows(), 1).setWrapStrategy(SpreadsheetApp.WrapStrategy.WRAP);
 
     // UPDATED FIXED HEADERS TO INCLUDE SUB-REGION INSTEAD OF COUNTRY
-    const fixedHeaders = ["Profile ID", "Sub Region", "Job Title", "Soluciones en Nivel 1"];
+    const fixedHeaders = ["Profile ID", "Sub Region", "Job Title", "Productos con Tier 1"];
     sheet.getRange(startRow, 1, 1, 4).setValues([fixedHeaders]);
     sheet.getRange(startRow - 1, 1, 1, 4).merge().setValue("Profile Details").setBackground("#666666").setFontColor("white").setFontWeight("bold").setHorizontalAlignment("center");
-    sheet.getRange(startRow, 1, 1, 4).setBackground("#d9d9d9").setFontWeight("bold");
+    sheet.getRange(startRow, 1, 1, 4).setBackground("#d9d9d9").setFontWeight("bold").setHorizontalAlignment("center").setVerticalAlignment("middle").setWrapStrategy(SpreadsheetApp.WrapStrategy.WRAP);
     let currentCol = 5; 
     PRODUCT_SCHEMA.forEach((group, index) => {
       // Format the spacer column to act as a collapsed header (Rows 1 to 5)
