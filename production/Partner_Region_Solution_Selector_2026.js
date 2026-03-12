@@ -276,11 +276,15 @@ function refreshDashboardData2026(dashSheet) {
   const rowSol = cacheValues[0];
   const rowProd = cacheValues[1];
 
-  // 3. Columns to Keep (Metadata: Name(C), Sub-Region(D), PDM(E), Type(F), Profiles(G) -> Indexes 2,3,4,5,6)
-  // We drop Internal ID and Partner ID from the display.
-  const columnsToKeep = [2, 3, 4, 5, 6]; 
-  const effectiveHeaders = { sol: {}, prod: {} }; 
-  
+  const columnsToKeepInfo = [
+    { type: 'meta', index: 2 },
+    { type: 'meta', index: 3 },
+    { type: 'meta', index: 4 },
+    { type: 'meta', index: 5 },
+    { type: 'meta', index: 6 }
+  ];
+
+  let currentEffectiveSol = "";
   for (let c = 7; c < rowSol.length; c++) {
     let prod = String(rowProd[c]).trim();
     let sol = String(rowSol[c]).trim(); 
@@ -305,7 +309,15 @@ function refreshDashboardData2026(dashSheet) {
     let keepCol = true;
     if (!solutionSelArray.includes("All") && !solutionSelArray.includes(effectiveSol.toLowerCase())) keepCol = false;
     if (productSel !== "All" && effectiveProd.toLowerCase() !== productSel.toLowerCase()) keepCol = false;
-    if (keepCol) columnsToKeep.push(c);
+    
+    if (keepCol) {
+       if (effectiveSol !== currentEffectiveSol) {
+          const color = cacheBackgrounds[0][c] && cacheBackgrounds[0][c] !== "#ffffff" ? cacheBackgrounds[0][c] : "#f3f3f3";
+          columnsToKeepInfo.push({ type: 'spacer', solution: effectiveSol, color: color });
+          currentEffectiveSol = effectiveSol;
+       }
+       columnsToKeepInfo.push({ type: 'data', index: c, sol: effectiveSol, prod: effectiveProd });
+    }
   }
 
   // Read DB to get URLs for Hyperlinking
@@ -324,16 +336,26 @@ function refreshDashboardData2026(dashSheet) {
   // Headers (3 rows)
   for (let r = 0; r < 3; r++) {
     let rowV = [], rowB = [], rowW = [], rowFC = [];
-    columnsToKeep.forEach(idx => {
-      let val = cacheValues[r][idx];
-      if (idx >= 7) {
-        if (r === 0) val = effectiveHeaders.sol[idx];
-        if (r === 1) val = effectiveHeaders.prod[idx];
+    columnsToKeepInfo.forEach(info => {
+      if (info.type === 'meta') {
+        rowV.push(cacheValues[r][info.index]);
+        rowB.push(cacheBackgrounds[r][info.index]);
+        rowW.push(cacheWeights[r][info.index]);
+        rowFC.push(cacheFontColors[r][info.index]);
+      } else if (info.type === 'spacer') {
+        rowV.push(r === 0 ? info.solution : "");
+        rowB.push(info.color);
+        rowW.push("bold");
+        rowFC.push("#000000"); // Standard text color for spacer
+      } else if (info.type === 'data') {
+        let val = cacheValues[r][info.index];
+        if (r === 0) val = info.sol;
+        if (r === 1) val = info.prod;
+        rowV.push(val);
+        rowB.push(cacheBackgrounds[r][info.index]);
+        rowW.push(cacheWeights[r][info.index]);
+        rowFC.push(cacheFontColors[r][info.index]);
       }
-      rowV.push(val);
-      rowB.push(cacheBackgrounds[r][idx]);
-      rowW.push(cacheWeights[r][idx]);
-      rowFC.push(cacheFontColors[r][idx]);
     });
     outputValues.push(rowV); outputBackgrounds.push(rowB); outputWeights.push(rowW); outputFontColors.push(rowFC);
   }
@@ -351,11 +373,18 @@ function refreshDashboardData2026(dashSheet) {
 
     if (keepRow) {
       let rowV = [], rowB = [], rowW = [], rowFC = [];
-      columnsToKeep.forEach(idx => {
-        rowV.push(cacheValues[r][idx]);
-        rowB.push(cacheBackgrounds[r][idx]);
-        rowW.push(cacheWeights[r][idx]);
-        rowFC.push(cacheFontColors[r][idx]);
+      columnsToKeepInfo.forEach(info => {
+        if (info.type === 'meta' || info.type === 'data') {
+          rowV.push(cacheValues[r][info.index]);
+          rowB.push(cacheBackgrounds[r][info.index]);
+          rowW.push(cacheWeights[r][info.index]);
+          rowFC.push(cacheFontColors[r][info.index]);
+        } else if (info.type === 'spacer') {
+          rowV.push(""); // Spacer body is blank
+          rowB.push(info.color);
+          rowW.push("normal");
+          rowFC.push("#000000");
+        }
       });
       outputValues.push(rowV); outputBackgrounds.push(rowB); outputWeights.push(rowW); outputFontColors.push(rowFC);
     }
@@ -398,31 +427,70 @@ function refreshDashboardData2026(dashSheet) {
     dashSheet.getRange(DATA_START_ROW_2026, 1, 3, outCols).setBorder(true, true, true, true, true, true);
     
     // Auto Resize width for the first 5 metadata columns
-    for(let c=1; c<=5; c++) dashSheet.autoResizeColumn(c);
-    
-    // Standardize width for score columns
-    for (let c = 6; c <= outCols; c++) { dashSheet.setColumnWidth(c, 70); }
+    // Clear all existing groups first
+    const maxC = dashSheet.getMaxColumns();
+    for (let c = 1; c <= maxC; c++) {
+      let depth = dashSheet.getColumnGroupDepth(c);
+      if (depth > 0) dashSheet.getRange(1, c).shiftColumnGroupDepth(-depth);
+    }
 
-    // Re-merge top header blocks matching visually
+    dashSheet.setColumnGroupControlPosition(SpreadsheetApp.GroupControlTogglePosition.BEFORE);
+
     const solutionRowIndex = DATA_START_ROW_2026; 
     const productRowIndex = DATA_START_ROW_2026 + 1;
-    let solMergeStart = 6; let currentSol = outputValues[0][5];
-    let prodMergeStart = 6; let currentProd = outputValues[1][5];
 
-    for (let c = 6; c < outCols; c++) { 
-       const nextSol = outputValues[0][c]; const nextProd = outputValues[1][c];
-       if (String(nextSol).trim() !== String(currentSol).trim() || String(currentSol).trim() === "") {
-          const span = c - (solMergeStart - 1); if (span > 1) dashSheet.getRange(solutionRowIndex, solMergeStart, 1, span).merge();
-          solMergeStart = c + 1; currentSol = nextSol;
-       }
-       if (String(nextProd).trim() !== String(currentProd).trim() || String(currentProd).trim() === "") {
-           const span = c - (prodMergeStart - 1); if (span > 1) dashSheet.getRange(productRowIndex, prodMergeStart, 1, span).merge();
-           prodMergeStart = c + 1; currentProd = nextProd;
+    let colIdx = 6; // 1-based index for columns (1-5 are metadata)
+    for (let i = 5; i < columnsToKeepInfo.length; i++) {
+        const info = columnsToKeepInfo[i];
+        if (info.type === 'spacer') {
+            dashSheet.setColumnWidth(colIdx, 40);
+            
+            // Format the spacer header (row 9 to 11 vertically merged)
+            dashSheet.getRange(DATA_START_ROW_2026, colIdx, 3, 1).merge()
+               .setVerticalAlignment("middle")
+               .setTextRotation(90)
+               .setWrap(true);
+               
+            // Find how many data columns follow it
+            let productCount = 0;
+            for (let j = i + 1; j < columnsToKeepInfo.length; j++) {
+                if (columnsToKeepInfo[j].type === 'spacer') break;
+                productCount++;
+            }
+            
+            if (productCount > 0) {
+                const prodStartCol = colIdx + 1;
+                // Merge Solution name across the top row (row 9) over the products
+                dashSheet.getRange(DATA_START_ROW_2026, prodStartCol, 1, productCount).merge()
+                   .setValue(info.solution)
+                   .setBackground(info.color)
+                   .setFontWeight("bold")
+                   .setHorizontalAlignment("center");
+                   
+                // Group the product columns natively
+                dashSheet.getRange(1, prodStartCol, 1, productCount).shiftColumnGroupDepth(1);
+            }
+        } else if (info.type === 'data') {
+            dashSheet.setColumnWidth(colIdx, 70);
+        }
+        colIdx++;
+    }
+
+    // Now merge the product row (row 10)
+    let prodMergeStart = 6; 
+    let currentProd = outputValues[1][5];
+    for (let c = 6; c <= outCols; c++) {
+       const nextProd = c < outCols ? outputValues[1][c-1] : null; // outputValues is 0-indexed
+       if (c === outCols || String(nextProd).trim() !== String(currentProd).trim() || String(currentProd).trim() === "") {
+           const span = c - prodMergeStart;
+           if (span > 1) dashSheet.getRange(productRowIndex, prodMergeStart, 1, span).merge();
+           if (c < outCols) {
+               prodMergeStart = c;
+               currentProd = nextProd;
+           }
        }
     }
-    const solSpan = outCols - (solMergeStart - 1); if (solSpan > 1) dashSheet.getRange(solutionRowIndex, solMergeStart, 1, solSpan).merge();
-    const prodSpan = outCols - (prodMergeStart - 1); if (prodSpan > 1) dashSheet.getRange(productRowIndex, prodMergeStart, 1, prodSpan).merge();
-    
+
     // Vertically merge and style the 5 metadata header columns so they span the 3 header rows cleanly
     for (let c = 1; c <= 5; c++) {
       dashSheet.getRange(DATA_START_ROW_2026, c, 3, 1)
