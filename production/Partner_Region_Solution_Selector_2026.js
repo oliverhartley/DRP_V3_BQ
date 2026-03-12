@@ -284,6 +284,7 @@ function refreshDashboardData2026(dashSheet) {
     { type: 'meta', index: 6 }
   ];
 
+  const effectiveHeaders = { sol: {}, prod: {} }; 
   let currentEffectiveSol = "";
   for (let c = 7; c < rowSol.length; c++) {
     let prod = String(rowProd[c]).trim();
