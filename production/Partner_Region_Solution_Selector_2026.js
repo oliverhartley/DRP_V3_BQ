@@ -334,8 +334,8 @@ function refreshDashboardData2026(dashSheet) {
   // 4. Build Output Data
   let outputValues = [], outputBackgrounds = [], outputWeights = [], outputFontColors = [];
 
-  // Headers (3 rows)
-  for (let r = 0; r < 3; r++) {
+  // Headers (2 rows: Row 0 is Product, Row 1 is Tier)
+  for (let r = 1; r < 3; r++) {
     let rowV = [], rowB = [], rowW = [], rowFC = [];
     columnsToKeepInfo.forEach(info => {
       if (info.type === 'meta') {
@@ -344,13 +344,12 @@ function refreshDashboardData2026(dashSheet) {
         rowW.push(cacheWeights[r][info.index]);
         rowFC.push(cacheFontColors[r][info.index]);
       } else if (info.type === 'spacer') {
-        rowV.push(r === 0 ? info.solution : "");
+        rowV.push(""); // Spacer header is blank for the horizontal rows
         rowB.push(info.color);
         rowW.push("bold");
         rowFC.push("#000000"); // Standard text color for spacer
       } else if (info.type === 'data') {
         let val = cacheValues[r][info.index];
-        if (r === 0) val = info.sol;
         if (r === 1) val = info.prod;
         rowV.push(val);
         rowB.push(cacheBackgrounds[r][info.index]);
@@ -409,7 +408,7 @@ function refreshDashboardData2026(dashSheet) {
 
     // Apply Hyperlinks to Partner Names
     let richTexts = [];
-    for (let i = 3; i < outputValues.length; i++) {
+    for (let i = 2; i < outputValues.length; i++) { // offset by 2 header rows instead of 3
       const pName = String(outputValues[i][0]);
       const url = partnerUrlMap.get(pName.trim().toLowerCase());
       if (url && url !== "") {
@@ -419,13 +418,13 @@ function refreshDashboardData2026(dashSheet) {
       }
     }
     if (richTexts.length > 0) {
-      dashSheet.getRange(DATA_START_ROW_2026 + 3, 1, richTexts.length, 1).setRichTextValues(richTexts);
+      dashSheet.getRange(DATA_START_ROW_2026 + 2, 1, richTexts.length, 1).setRichTextValues(richTexts); // offset by 2 header rows
     }
 
     targetRange.setHorizontalAlignment("center");
     dashSheet.getRange(DATA_START_ROW_2026, 1, outRows, 1).setHorizontalAlignment("left"); // Partner Name
     dashSheet.getRange(DATA_START_ROW_2026, 1, outRows, outCols).setBorder(true, true, true, true, true, true);
-    dashSheet.getRange(DATA_START_ROW_2026, 1, 3, outCols).setBorder(true, true, true, true, true, true);
+    dashSheet.getRange(DATA_START_ROW_2026, 1, 2, outCols).setBorder(true, true, true, true, true, true); // borders for 2 header rows
     
     // Auto Resize width for the first 5 metadata columns
     // Clear all existing groups first
@@ -438,7 +437,7 @@ function refreshDashboardData2026(dashSheet) {
     dashSheet.setColumnGroupControlPosition(SpreadsheetApp.GroupControlTogglePosition.BEFORE);
 
     const solutionRowIndex = DATA_START_ROW_2026; 
-    const productRowIndex = DATA_START_ROW_2026 + 1;
+    const productRowIndex = DATA_START_ROW_2026; 
 
     let colIdx = 6; // 1-based index for columns (1-5 are metadata)
     for (let i = 5; i < columnsToKeepInfo.length; i++) {
@@ -456,8 +455,8 @@ function refreshDashboardData2026(dashSheet) {
                .setTextRotation(90)
                .setWrap(true);
 
-            // Format the lower spacer header (row 9 to 11 vertically merged)
-            dashSheet.getRange(DATA_START_ROW_2026, colIdx, 3, 1).merge()
+            // Format the lower spacer header (row 9 to 10 vertically merged)
+            dashSheet.getRange(DATA_START_ROW_2026, colIdx, 2, 1).merge()
                .setValue("") // Clear the text from row 9
                .setVerticalAlignment("middle")
                .setTextRotation(90)
@@ -472,13 +471,7 @@ function refreshDashboardData2026(dashSheet) {
             
             if (productCount > 0) {
                 const prodStartCol = colIdx + 1;
-                // Merge Solution name across the top row (row 9) over the products
-                dashSheet.getRange(DATA_START_ROW_2026, prodStartCol, 1, productCount).merge()
-                   .setValue(info.solution)
-                   .setBackground(info.color)
-                   .setFontWeight("bold")
-                   .setHorizontalAlignment("center");
-                   
+                // We no longer merge Solution horizontally here, as it's purely vertical in spacer.
                 // Group the product columns natively
                 dashSheet.getRange(1, prodStartCol, 1, productCount).shiftColumnGroupDepth(1);
             }
@@ -488,11 +481,11 @@ function refreshDashboardData2026(dashSheet) {
         colIdx++;
     }
 
-    // Now merge the product row (row 10)
+    // Now merge the product row (row 9)
     let prodMergeStart = 6; 
-    let currentProd = outputValues[1][5];
+    let currentProd = outputValues[0][5];
     for (let c = 6; c <= outCols; c++) {
-       const nextProd = c < outCols ? outputValues[1][c-1] : null; // outputValues is 0-indexed
+       const nextProd = c < outCols ? outputValues[0][c-1] : null; // outputValues is 0-indexed
        if (c === outCols || String(nextProd).trim() !== String(currentProd).trim() || String(currentProd).trim() === "") {
            const span = c - prodMergeStart;
            if (span > 1) {
@@ -507,9 +500,12 @@ function refreshDashboardData2026(dashSheet) {
        }
     }
 
-    // Vertically merge and style the 5 metadata header columns so they span the 3 header rows cleanly
+    // Wrap text on product row (row 9) from column 6 onwards
+    dashSheet.getRange(DATA_START_ROW_2026, 6, 1, outCols - 5).setWrapStrategy(SpreadsheetApp.WrapStrategy.WRAP);
+
+    // Vertically merge and style the 5 metadata header columns so they span the 2 header rows cleanly
     for (let c = 1; c <= 5; c++) {
-      dashSheet.getRange(DATA_START_ROW_2026, c, 3, 1)
+      dashSheet.getRange(DATA_START_ROW_2026, c, 2, 1)
         .mergeVertically()
         .setVerticalAlignment("middle")
         .setBackground("#f3f3f3")
