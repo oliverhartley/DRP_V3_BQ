@@ -446,8 +446,19 @@ function refreshDashboardData2026(dashSheet) {
         if (info.type === 'spacer') {
             dashSheet.setColumnWidth(colIdx, 40);
             
-            // Format the spacer header (row 9 to 11 vertically merged)
+            // Format the spacer header (row 1 to 8 vertically merged with Solution name)
+            dashSheet.getRange(1, colIdx, DATA_START_ROW_2026 - 1, 1).merge()
+               .setValue(info.solution)
+               .setBackground(info.color)
+               .setFontWeight("bold")
+               .setHorizontalAlignment("center")
+               .setVerticalAlignment("middle")
+               .setTextRotation(90)
+               .setWrap(true);
+
+            // Format the lower spacer header (row 9 to 11 vertically merged)
             dashSheet.getRange(DATA_START_ROW_2026, colIdx, 3, 1).merge()
+               .setValue("") // Clear the text from row 9
                .setVerticalAlignment("middle")
                .setTextRotation(90)
                .setWrap(true);
