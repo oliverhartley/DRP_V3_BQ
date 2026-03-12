@@ -484,7 +484,11 @@ function refreshDashboardData2026(dashSheet) {
        const nextProd = c < outCols ? outputValues[1][c-1] : null; // outputValues is 0-indexed
        if (c === outCols || String(nextProd).trim() !== String(currentProd).trim() || String(currentProd).trim() === "") {
            const span = c - prodMergeStart;
-           if (span > 1) dashSheet.getRange(productRowIndex, prodMergeStart, 1, span).merge();
+           if (span > 1) {
+               dashSheet.getRange(productRowIndex, prodMergeStart, 1, span).merge();
+               // Create product-level Depth-2 grouping for Tier 2 - Tier 4, leaving Tier 1 as the visible toggle
+               dashSheet.getRange(1, prodMergeStart + 1, 1, span - 1).shiftColumnGroupDepth(1);
+           }
            if (c < outCols) {
                prodMergeStart = c;
                currentProd = nextProd;
