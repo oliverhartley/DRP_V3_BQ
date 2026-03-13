@@ -39,6 +39,11 @@ function setupDashboard2026() {
   if (!sheet) { sheet = ss.insertSheet(SHEET_NAME_DASHBOARD_2026); }
   sheet.clear();
   setLoadingStatus2026(sheet, true);
+
+  // Set Header Titles
+  sheet.getRange("A1").setValue("DRP Dashboard 2026").setFontWeight("bold").setFontSize(18);
+  sheet.getRange("A2").setValue("Status by partner").setFontWeight("bold").setFontSize(15);
+  sheet.getRange("A3").setValue("Questions / Feedback: oliverhartley@").setFontWeight("bold").setFontSize(10);
   
   // Initialize Cache
   updateDashboardCache2026();
