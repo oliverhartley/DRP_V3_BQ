@@ -458,9 +458,9 @@ function refreshDashboardData2026(dashSheet) {
                .setTextRotation(90)
                .setWrap(true);
 
-            // Format the lower spacer header (row 9 to 10 vertically merged)
-            dashSheet.getRange(DATA_START_ROW_2026, colIdx, 2, 1).merge()
-               .setValue("") // Clear the text from row 9
+            // Format the lower spacer header (rows 9 and 10 separately)
+            dashSheet.getRange(DATA_START_ROW_2026, colIdx, 2, 1)
+               .setValue("") // Clear the text from rows 9 and 10
                .setVerticalAlignment("middle")
                .setTextRotation(90)
                .setWrap(true);
@@ -516,6 +516,12 @@ function refreshDashboardData2026(dashSheet) {
         .setFontWeight("bold")
         .setWrap(true);
     }
+
+    // Apply filter on Row 10 (DATA_START_ROW_2026 + 1) starting from Column 6 (F)
+    const filterStartRow = DATA_START_ROW_2026 + 1; // row 10
+    const existingFilter = dashSheet.getFilter();
+    if (existingFilter) existingFilter.remove();
+    dashSheet.getRange(filterStartRow, 6, dashSheet.getMaxRows() - filterStartRow + 1, dashSheet.getMaxColumns() - 5).createFilter();
 
   } else {
     dashSheet.getRange(DATA_START_ROW_2026, 1).setValue("No partners found for this selection.");
