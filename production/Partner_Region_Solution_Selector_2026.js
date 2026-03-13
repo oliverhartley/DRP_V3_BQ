@@ -174,6 +174,7 @@ function refreshDashboardData2026(dashSheet) {
         // Since we skip r=0, we must force the text for the top header row (r=1) to use cacheValues[0] where the text actually lives.
         let val = cacheValues[r][info.index];
         if (r === 1) val = cacheValues[0][info.index];
+        if (r === 2) val = ""; // Clear text on row 10 so it's a blank cell for the filter
         rowV.push(val);
         rowB.push(cacheBackgrounds[r][info.index]);
         rowW.push(cacheWeights[r][info.index]);
@@ -327,22 +328,19 @@ function refreshDashboardData2026(dashSheet) {
     // Wrap text on product row (row 9) from column 6 onwards
     dashSheet.getRange(DATA_START_ROW_2026, 6, 1, outCols - 5).setWrapStrategy(SpreadsheetApp.WrapStrategy.WRAP);
 
-    // Vertically merge and style the 5 metadata header columns so they span the 2 header rows cleanly
-    for (let c = 1; c <= 5; c++) {
-      dashSheet.getRange(DATA_START_ROW_2026, c, 2, 1)
-        .mergeVertically()
+    // Style the 5 metadata header columns cleanly
+    dashSheet.getRange(DATA_START_ROW_2026, 1, 2, 5)
         .setVerticalAlignment("middle")
         .setBackground("#f3f3f3")
         .setFontColor("black")
         .setFontWeight("bold")
         .setWrap(true);
-    }
 
-    // Apply filter on Row 10 (DATA_START_ROW_2026 + 1) starting from Column 6 (F)
+    // Apply filter on Row 10 (DATA_START_ROW_2026 + 1) across ALL columns (starting from 1)
     const filterStartRow = DATA_START_ROW_2026 + 1; // row 10
     const existingFilter = dashSheet.getFilter();
     if (existingFilter) existingFilter.remove();
-    dashSheet.getRange(filterStartRow, 6, dashSheet.getMaxRows() - filterStartRow + 1, dashSheet.getMaxColumns() - 5).createFilter();
+    dashSheet.getRange(filterStartRow, 1, dashSheet.getMaxRows() - filterStartRow + 1, dashSheet.getMaxColumns()).createFilter();
 
   } else {
     dashSheet.getRange(DATA_START_ROW_2026, 1).setValue("No partners found for this selection.");
