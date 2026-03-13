@@ -339,7 +339,10 @@ function refreshDashboardData2026(dashSheet) {
     let rowV = [], rowB = [], rowW = [], rowFC = [];
     columnsToKeepInfo.forEach(info => {
       if (info.type === 'meta') {
-        rowV.push(cacheValues[r][info.index]);
+        // Since we skip r=0, we must force the text for the top header row (r=1) to use cacheValues[0] where the text actually lives.
+        let val = cacheValues[r][info.index];
+        if (r === 1) val = cacheValues[0][info.index];
+        rowV.push(val);
         rowB.push(cacheBackgrounds[r][info.index]);
         rowW.push(cacheWeights[r][info.index]);
         rowFC.push(cacheFontColors[r][info.index]);
