@@ -310,6 +310,9 @@ function generateDeckForPartner2026(partnerName, existingDeckId = null) {
     sheet.getRange("J2").setValue(Math.max(0, totalProfilesActual - totalProfilesAcrossRegions));
     sheet.getRange("K2").setValue(totalProfilesActual);
 
+    const formattedDate = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "dd-MMM");
+    sheet.getRange("I4").setValue("Last Update: " + formattedDate).setFontWeight("bold").setFontColor("red");
+
     sheet.getRange("M1").setValue("Select Sub-Region");
     sheet.getRange("M2").setValue("All");
     sheet.getRange("M1").setBackground("#4285f4").setFontColor("white").setFontWeight("bold").setHorizontalAlignment("center").setBorder(true, true, true, true, true, true);
