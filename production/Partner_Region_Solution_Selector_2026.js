@@ -209,7 +209,9 @@ function refreshDashboardData2026(dashSheet) {
     let rowV = [], rowB = [], rowW = [], rowFC = [];
     columnsToKeepInfo.forEach(info => {
       if (info.type === 'meta' || info.type === 'data') {
-        rowV.push(cacheValues[r][info.index]);
+        let val = cacheValues[r][info.index];
+        if (val === 0 || val === "0") val = "";
+        rowV.push(val);
         rowB.push(cacheBackgrounds[r][info.index]);
         rowW.push(cacheWeights[r][info.index]);
         rowFC.push(cacheFontColors[r][info.index]);
