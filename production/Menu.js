@@ -10,8 +10,8 @@ function onOpen() {
   const ui = SpreadsheetApp.getUi();
 
   ui.createMenu('🚀 Partner Engine 2026')
-    .addItem('1️⃣ Update Scoring Matrix', 'runPartnerScorePivot2026')
-    .addItem('2️⃣ Update Deep Dive Data', 'runDeepDive2026')
+    .addItem('1️⃣ Update Deep Dive Data', 'runDeepDive2026')
+    .addItem('2️⃣ Update Scoring Matrix', 'runPartnerScorePivot2026')
     .addSeparator()
     .addItem('📊 Format Dashboard View', 'setupDashboard2026')
     .addSeparator()

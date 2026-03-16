@@ -45,6 +45,9 @@ function setupDashboard2026() {
   sheet.getRange("A2").setValue("Status by partner").setFontWeight("bold").setFontSize(15);
   sheet.getRange("A3").setValue("Questions / Feedback: oliverhartley@").setFontWeight("bold").setFontSize(10);
   
+  const formattedDate = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "dd-MMM");
+  sheet.getRange("A5").setValue("Last Update: " + formattedDate).setFontWeight("bold").setFontColor("red");
+  
   // Initialize Cache
   updateDashboardCache2026();
 
