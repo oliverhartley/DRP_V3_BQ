@@ -59,7 +59,7 @@ function runSinglePartnerEmailSender2026(partnerNameFromArgs) {
     const h = headers[c];
     if (h.includes("to") && h.includes("email")) colToEmail = c;
     if (h.includes("cc") && h.includes("email")) colCcEmail = c;
-    if (h.includes("status")) colStatus = c;
+    if (h.includes("email") && h.includes("sent")) colStatus = c;
     if (h.includes("spreadsheet") && h.includes("id")) colSpreadsheetId = c;
   }
 
