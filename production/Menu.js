@@ -17,5 +17,6 @@ function onOpen() {
     .addSeparator()
     .addItem('📄 Generate All Partner Decks', 'runFullBatchDecks2026')
     .addItem('📧 Send Batch Summary Emails', 'runBatchEmailSender2026')
+    .addItem('📨 Send Single Partner Email (Test)', 'runSinglePartnerEmailSender2026')
     .addToUi();
 }
