@@ -311,7 +311,7 @@ function generateDeckForPartner2026(partnerName, existingDeckId = null) {
     sheet.getRange("K2").setValue(totalProfilesActual);
 
     const formattedDate = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "dd-MMM");
-    sheet.getRange("I4").setValue("Last Update: " + formattedDate).setFontWeight("bold").setFontColor("red");
+    sheet.getRange("I4").setValue("Last Update: " + formattedDate).setFontWeight("bold").setFontColor("red").setFontSize(20);
 
     sheet.getRange("M1").setValue("Select Sub-Region");
     sheet.getRange("M2").setValue("All");
