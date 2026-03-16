@@ -317,8 +317,8 @@ function sendEmail2026(subject, htmlBody, to, cc) {
     if (!to || String(to).trim() === "") {
       Logger.log("  WARNING: 'TO' email is empty. Attempting to send using CC only if possible, or aborting.");
       if (emailOptions.cc) {
+        // If TO is empty, put CCs in the TO field but LEAVE them in CC as well for visibility
         emailOptions.to = emailOptions.cc;
-        delete emailOptions.cc;
       } else {
         Logger.log("  ERROR: No recipients defined. Skipping email.");
         return;
