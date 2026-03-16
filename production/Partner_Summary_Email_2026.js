@@ -257,7 +257,7 @@ function getPartnerSheetData2026(ssId) {
 
 function callGeminiWithFallback2026(prompt) {
   const userModels = [
-    { name: 'gemini-3-pro-preview', version: 'v1beta' }
+    { name: 'gemini-3-flash-preview', version: 'v1beta' }
   ];
 
   const apiKey = PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY');
