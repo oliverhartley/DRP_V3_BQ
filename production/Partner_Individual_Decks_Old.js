@@ -1,10 +1,11 @@
+/*
 /**
  * ****************************************
  * Google Apps Script - Individual Partner Decks
  * File: Partner_Individual_Decks.gs
  * Version: 11.8 (Corrected Indices V2)
  * ****************************************
- */
+ * /
 
 // NOTE: Uses Global Constants from Config.gs
 
@@ -529,3 +530,4 @@ function ensurePartnerImages(sheet) {
     Logger.log(`Critical Error in ensurePartnerImages: ${e.toString()}`);
   }
 }
+*/

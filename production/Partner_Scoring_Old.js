@@ -1,10 +1,11 @@
+/*
 /**
  * ****************************************
  * Google Apps Script - BigQuery Scored Partner Pivot
  * File: Partner_Scoring.gs
  * Version: 4.3 (Added Total Profiles Column + Layout Adjustments)
  * ****************************************
- */
+ * /
 
 // NOTE: PROJECT_ID, DESTINATION_SS_ID, SOURCE_SS_ID, SHEET_NAME_SCORE, SHEET_NAME_SOURCE come from Config.gs
 
@@ -174,7 +175,7 @@ function getScorePivotSql(virtualTableData) {
   sqlParts.push("                    WHEN scores.score BETWEEN 20 AND 34 THEN 'Tier 3'");
   sqlParts.push("                    WHEN scores.score < 20 THEN 'Tier 4'");
   sqlParts.push("                    ELSE 'No Tier'");
-  sqlParts.push("                END AS practitioner_tier,");
+  END AS practitioner_tier,");
   sqlParts.push("                CASE");
   sqlParts.push("                    WHEN scores.scored_product IN ('Google Compute Engine', 'Google Cloud Networking', 'SAP on Google Cloud', 'Google Cloud VMware Engine', 'Google Distributed Cloud') THEN 'Infrastructure Modernization'");
   sqlParts.push("                    WHEN scores.scored_product IN ('Google Kubernetes Engine', 'Apigee API Management') THEN 'Application Modernization'");
@@ -184,7 +185,7 @@ function getScorePivotSql(virtualTableData) {
   sqlParts.push("                    WHEN scores.scored_product IN ('Cloud Security', 'Security Command Center', 'Security Operations', 'Google Threat Intelligence') THEN 'Security'");
   sqlParts.push("                    WHEN scores.scored_product = 'Workspace' THEN 'Workspace'");
   sqlParts.push("                    ELSE 'Other' ");
-  sqlParts.push("                END AS scored_solution");
+  END AS scored_solution");
   sqlParts.push("            FROM");
   sqlParts.push("                `concord-prod.service_partnercoe.drp_partner_master` AS t1");
   sqlParts.push("            LEFT JOIN UNNEST(t1.profile_details.score_details) AS scores");
@@ -365,3 +366,4 @@ function runPartnerScorePivot() {
     Logger.log("Success. Rows: " + data.length);
   } catch (e) { console.error("CRITICAL ERROR: " + e.toString()); }
 }
+*/

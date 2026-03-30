@@ -1,10 +1,11 @@
+/*
 /**
  * ****************************************
  * Google Apps Script - BigQuery Loader
  * File: LATAM_Partner_DB.gs
  * Version: V 5.9 - Fixed Filter Column Names
  * ****************************************
- */
+ * /
 
 // NOTE: PROJECT_ID, DESTINATION_SS_ID, and SOURCE_SS_ID are defined in Config.gs
 
@@ -198,3 +199,4 @@ function runBigQueryQuery() {
     Logger.log("Carga completa.");
   } catch (e) { Logger.log("ERROR: " + e.toString()); }
 }
+*/

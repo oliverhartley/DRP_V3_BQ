@@ -1,10 +1,11 @@
+/*
 /**
  * ****************************************
  * Google Apps Script - Partner Dashboard Slicer
  * File: Partner_Region_Solution_Selector.gs
  * Version: 8.1 - Fast Cache (No Rich Text)
  * ****************************************
- */
+ * /
 
 // NOTE: Uses Global Constants from Config.gs
 
@@ -89,7 +90,7 @@ function onEdit(e) {
 /**
  * Updates the Dashboard Cache Sheet.
  * This should be run daily or after data updates.
- */
+ * /
 function updateDashboardCache() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const dbSheet = ss.getSheetByName(SHEET_NAME_DB);
@@ -678,3 +679,4 @@ function updateProductDropdown() {
   }
   dashSheet.getRange(CELL_PRODUCT.r, CELL_PRODUCT.c).setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(["All", ...Array.from(products).sort()]).build());
 }
+*/

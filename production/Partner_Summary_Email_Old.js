@@ -1,3 +1,4 @@
+/*
 /**
  * ****************************************
  * Google Apps Script - Partner Summary Email
@@ -5,7 +6,7 @@
  * Description: Generates an executive summary using Gemini and sends it via email.
  * Includes Batch Processing capabilities.
  * ****************************************
- */
+ * /
 
 // NOTE: Uses Global Constants from Config.gs
 // SOURCE_SS_ID, PARTNER_FOLDER_ID
@@ -317,3 +318,4 @@ function sendEmail(subject, htmlBody, to, cc) {
     Logger.log(`  Error sending email: ${e.toString()}`);
   }
 }
+*/

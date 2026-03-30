@@ -1,3 +1,4 @@
+/*
 /**
  * ****************************************
  * Google Apps Script - Single Partner Email Summary
@@ -5,14 +6,14 @@
  * Description: Allows sending a Gemini-generated executive summary for a specific partner.
  * Supports both Spreadsheet UI (Prompt) and Apps Script Console execution.
  * ****************************************
- */
+ * /
 
 /**
  * Main entry point for sending a single partner summary.
  * Can be called from the UI (no args) or programmatically with a partner name.
  * 
  * @param {string} [partnerNameFromArgs] Optional partner name for non-UI execution.
- */
+ * /
 function runSinglePartnerEmailSender(partnerNameFromArgs) {
   let partnerNameInput = partnerNameFromArgs;
 
@@ -96,9 +97,10 @@ function runSinglePartnerEmailSender(partnerNameFromArgs) {
 /**
  * Helper function for manual execution from the Apps Script console.
  * Usage: Select this function and click "Run", or modify the hardcoded name.
- */
+ * /
 function runSinglePartnerEmailManual() {
   // EDIT THE PARTNER NAME BELOW FOR CONSOLE TESTING
   const testPartnerName = "Accenture";
   runSinglePartnerEmailSender(testPartnerName);
 }
+*/
