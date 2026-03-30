@@ -31,3 +31,13 @@ const SHEET_NAME_DASHBOARD = "Partner / Region / Solution Selector";
 const SHEET_NAME_DASHBOARD_2026 = "LATAM_Partner_Dashboard_2026";
 const SHEET_NAME_CACHE_2026 = "CACHE_Dashboard_2026";
 const SHEET_NAME_LINKS = "System_Link_Cache";
+
+const PRODUCT_SCHEMA = [
+  { solution: 'Infrastructure Modernization', color: '#fce5cd', products: ['Google Compute Engine', 'Google Cloud Networking', 'SAP on Google Cloud', 'Google Cloud VMware Engine', 'Google Distributed Cloud'] },
+  { solution: 'Application Modernization', color: '#d9d2e9', products: ['Google Kubernetes Engine', 'Apigee API Management'] },
+  { solution: 'Databases', color: '#fce5cd', products: ['Cloud SQL', 'AlloyDB for PostgreSQL', 'Spanner', 'Cloud Run', 'Oracle'] },
+  { solution: 'Data & Analytics', color: '#d9ead3', products: ['BigQuery', 'Looker', 'Dataflow', 'Dataproc'] },
+  { solution: 'Artificial Intelligence', color: '#c9daf8', products: ['Vertex AI Platform', 'AI Applications', 'Gemini Enterprise', 'Customer Engagement Suite'] },
+  { solution: 'Security', color: '#f4cccc', products: ['Cloud Security', 'Security Command Center', 'Security Operations', 'Google Threat Intelligence'] },
+  { solution: 'Workspace', color: '#fff2cc', products: ['Workspace'] }
+];
